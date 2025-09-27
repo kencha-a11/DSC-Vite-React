@@ -1,5 +1,11 @@
+import React, { lazy } from 'react';
 import App from '../App';
-import { HomePage, LoginPage, Dashboard, NotFoundPage } from '../pages';
+
+// Lazy-load pages
+const HomePage = lazy(() => import('../pages/HomePage'));
+const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
+const Dashboard = lazy(() => import('../pages/Dashboard'));
+const NotFoundPage = lazy(() => import('../pages/status/NotFoundPage'));
 
 export const publicRoutes = [
   {
@@ -22,4 +28,7 @@ export const protectedRoutes = [
   },
 ];
 
-export const fallbackRoute = { path: '*', element: <NotFoundPage /> };
+export const fallbackRoute = {
+  path: '*',
+  element: <NotFoundPage />,
+};
