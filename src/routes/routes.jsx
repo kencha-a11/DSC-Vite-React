@@ -1,4 +1,5 @@
 import React, { lazy } from 'react';
+import { Navigate } from 'react-router-dom';
 import App from '../App';
 
 // Lazy-load pages
@@ -12,7 +13,8 @@ export const publicRoutes = [
     path: '/',
     element: <App />,
     children: [
-      { path: '/', element: <HomePage /> },
+      { index: true, element: <Navigate to="/home" replace /> },
+      { path: '/home', element: <HomePage /> },
       { path: '/login', element: <LoginPage /> },
     ],
   },

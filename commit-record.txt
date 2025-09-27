@@ -1,0 +1,4 @@
+
+routes: visit '/' redirect to '/home'
+add commit-record.txt
+HomePage.jsx simple design
