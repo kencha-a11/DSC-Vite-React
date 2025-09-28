@@ -26,6 +26,12 @@ function HomePage() {
           >
             Login
           </Link>
+          <Link
+            to="/dashboard"
+            className="px-6 py-3 rounded-lg bg-white text-indigo-600 border border-indigo-300 font-medium shadow hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+          >
+            dashboard
+          </Link>
         </div>
       </section>
     </main>

@@ -1,36 +1,48 @@
-import React, { lazy } from 'react';
-import { Navigate } from 'react-router-dom';
-import App from '../App';
+// src/routes/routes.jsx
+import { lazy } from "react";
+import App from "../App";
+import ProtectedRoute from "../components/ProtectedRoute";
 
-// Lazy-load pages
-const HomePage = lazy(() => import('../pages/HomePage'));
-const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
-const Dashboard = lazy(() => import('../pages/Dashboard'));
-const NotFoundPage = lazy(() => import('../pages/status/NotFoundPage'));
+// Lazily load route components (code-splitting for performance)
+const HomePage = lazy(() => import("../pages/HomePage"));
+const LoginPage = lazy(() => import("../pages/auth/LoginPage"));
+const Dashboard = lazy(() => import("../pages/Dashboard"));
+const NotFoundPage = lazy(() => import("../pages/status/NotFoundPage"));
 
+// Public routes: accessible without authentication
 export const publicRoutes = [
   {
-    path: '/',
-    element: <App />,
+    path: "/",
+    element: <App />, // App provides layout/wrapper for routes
     children: [
-      { index: true, element: <Navigate to="/home" replace /> },
-      { path: '/home', element: <HomePage /> },
-      { path: '/login', element: <LoginPage /> },
+      { index: true, element: <HomePage /> }, // default route at "/"
+      { path: "home", element: <HomePage /> }, // "/home" route
+      { path: "login", element: <LoginPage /> }, // "/login" route
     ],
   },
 ];
 
+// Protected routes: only accessible when authenticated
 export const protectedRoutes = [
   {
-    path: '/',
-    element: <App />,
+    path: "/",
+    element: <App />, // Wrap protected routes in App for consistent layout
     children: [
-      { path: '/dashboard', element: <Dashboard /> },
+      {
+        path: "dashboard",
+        element: (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        ),
+      },
+      // Add more protected routes here as needed
     ],
   },
 ];
 
+// Fallback route: catches all undefined paths and shows a 404 page
 export const fallbackRoute = {
-  path: '*',
+  path: "*",
   element: <NotFoundPage />,
 };
