@@ -9,10 +9,11 @@ const LoginPage = lazy(() => import("../pages/auth/LoginPage"));
 const Dashboard = lazy(() => import("../pages/Dashboard"));
 const NotFoundPage = lazy(() => import("../pages/status/NotFoundPage"));
 
-const MainContent = lazy(() => import("../components/dashboard/MainContent"));
+const DashboardContent = lazy(() => import("../components/dashboard/DashboardContent"));
+const AccountsContent = lazy(() => import("../components/dashboard/AccountsContent"));
 const SellContent = lazy(() => import("../components/dashboard/SellContent"));
-const ProductsContent = lazy(() => import("../components/dashboard/ProductContent"));
 const InventoryContent = lazy(() => import("../components/dashboard/InventoryContent"));
+const RecordsContent = lazy(() => import("../components/dashboard/RecordsContent"));
 const ReportsContent = lazy(() => import("../components/dashboard/ReportsContent"));
 
 // Public routes: accessible without authentication
@@ -42,10 +43,11 @@ export const protectedRoutes = [
           </ProtectedRoute>
         ),
         children: [
-          { index: true, element: <MainContent /> },
+          { index: true, element: <DashboardContent /> },
+          { path: "accounts", element: <AccountsContent /> },
           { path: "sell", element: <SellContent /> },
-          { path: "products", element: <ProductsContent /> },
           { path: "inventory", element: <InventoryContent /> },
+          { path: "records", element: <RecordsContent /> },
           { path: "reports", element: <ReportsContent /> },
         ],
       },
