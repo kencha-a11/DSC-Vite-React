@@ -1,75 +1,9 @@
 // src/components/Sidebar.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
+import { DashboardIcon, AccountsIcon, SellIcon, InventoryIcon, RecordsIcon, ReportsIcon } from "../icons/index"
 
-// --- Inline SVG icons ---
-const DashboardIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-    <path
-      d="M3 11.5L12 4l9 7.5"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M5 12v7a1 1 0 0 0 1 1h3v-5h6v5h3a1 1 0 0 0 1-1v-7"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const AccountsIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-    <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
-    <path
-      d="M4 20c0-4 4-6 8-6s8 2 8 6"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
-const SellIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-    <path d="M12 8v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    <circle cx="12" cy="6" r="1.5" fill="currentColor" />
-    <path
-      d="M5 12h14l-1 6H6l-1-6z"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const InventoryIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-    <rect x="3" y="5" width="18" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
-    <rect x="3" y="13" width="18" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
-  </svg>
-);
-
-const RecordsIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-    <path d="M5 5h14v14H5z" stroke="currentColor" strokeWidth="1.5" />
-    <path d="M9 9h6v6H9z" stroke="currentColor" strokeWidth="1.5" />
-  </svg>
-);
-
-const ReportsIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-    <path d="M12 3v18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    <path d="M18 7v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    <path d="M6 11v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-);
 
 // --- Menu items ---
 const menuItems = [
@@ -110,11 +44,22 @@ export default function Sidebar() {
   );
 
   useEffect(() => {
-    const index = menuItems.findIndex((item) =>
-      location.pathname.startsWith(item.to)
-    );
+    const index = menuItems.reduce((bestIndex, item, i) => {
+      if (location.pathname.startsWith(item.to)) {
+        // pick the longer path (more specific)
+        if (
+          bestIndex === -1 ||
+          item.to.length > menuItems[bestIndex].to.length
+        ) {
+          return i;
+        }
+      }
+      return bestIndex;
+    }, -1);
+
     setActiveIndex(index);
   }, [location.pathname]);
+
 
   useEffect(() => {
     if (indicatorRef.current && activeIndex !== -1) {

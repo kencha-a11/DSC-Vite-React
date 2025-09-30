@@ -1,5 +1,5 @@
 // src/api/auth.js
-import api, { csrfApi } from "./axios";
+import api, { csrfApi } from "../api/axios";
 
 // Fetch CSRF cookie and wait for it to be set
 export const getCsrfCookie = async () => {

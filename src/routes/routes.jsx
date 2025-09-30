@@ -1,30 +1,50 @@
-// src/routes/routes.jsx
-import { lazy } from "react";
+// src/routes/routes.jsx (The Cleanest Version)
+
+// Note: Remove 'lazy' and 'Suspense' imports as they are now in utils.jsx
 import App from "../App";
-import ProtectedRoute from "../routes/ProtectedRoute"
+import ProtectedRoute from "../routes/ProtectedRoute";
+import { wrapRouteElement } from "../utils/utils"; // Import the helper function
 
-// Lazily load route components (code-splitting for performance)
-const HomePage = lazy(() => import("../pages/HomePage"));
-const LoginPage = lazy(() => import("../pages/auth/LoginPage"));
-const Dashboard = lazy(() => import("../pages/Dashboard"));
-const NotFoundPage = lazy(() => import("../pages/status/NotFoundPage"));
+// 🤩 Single, clean import from the centralized loader file
+import { 
+  loadHomePage, 
+  loadLoginPage, 
+  loadDashboard, 
+  loadNotFoundPage,
+  loadDashboardContent,
+  loadAccountsContent,
+  loadSellContent,
+  loadInventoryContent,
+  loadRecordsContent,
+  loadReportsContent,
+  loadTestDataPage
+} from "../pages";
 
-const DashboardContent = lazy(() => import("../components/dashboard/DashboardContent"));
-const AccountsContent = lazy(() => import("../components/dashboard/AccountsContent"));
-const SellContent = lazy(() => import("../components/dashboard/SellContent"));
-const InventoryContent = lazy(() => import("../components/dashboard/InventoryContent"));
-const RecordsContent = lazy(() => import("../components/dashboard/RecordsContent"));
-const ReportsContent = lazy(() => import("../components/dashboard/ReportsContent"));
+// **STEP ELIMINATED:** The block of 'const HomePage = lazy(loadHomePage);' is no longer necessary.
 
 // Public routes: accessible without authentication
 export const publicRoutes = [
   {
     path: "/",
-    element: <App />, // App provides layout/wrapper for routes
+    element: <App />, 
     children: [
-      { index: true, element: <HomePage /> }, // default route at "/"
-      { path: "home", element: <HomePage /> }, // "/home" route
-      { path: "login", element: <LoginPage /> }, // "/login" route
+      { 
+        index: true, 
+        element: wrapRouteElement(loadHomePage) 
+      }, 
+      { 
+        path: "home", 
+        element: wrapRouteElement(loadHomePage) 
+      }, 
+      { 
+        path: "login", 
+        element: wrapRouteElement(loadLoginPage) 
+      },
+      // You can add TestDataPage here if it's public
+      {
+        path: "test-data",
+        element: wrapRouteElement(loadTestDataPage)
+      }
     ],
   },
 ];
@@ -33,25 +53,26 @@ export const publicRoutes = [
 export const protectedRoutes = [
   {
     path: "/",
-    element: <App />, // Wrap protected routes in App for consistent layout
+    element: <App />,
     children: [
       {
         path: "dashboard",
+        // The Dashboard component needs to be lazily loaded inside ProtectedRoute
         element: (
           <ProtectedRoute>
-            <Dashboard />
+            {wrapRouteElement(loadDashboard)}
           </ProtectedRoute>
         ),
         children: [
-          { index: true, element: <DashboardContent /> },
-          { path: "accounts", element: <AccountsContent /> },
-          { path: "sell", element: <SellContent /> },
-          { path: "inventory", element: <InventoryContent /> },
-          { path: "records", element: <RecordsContent /> },
-          { path: "reports", element: <ReportsContent /> },
+          // Nested routes also use the helper
+          { index: true, element: wrapRouteElement(loadDashboardContent) },
+          { path: "accounts", element: wrapRouteElement(loadAccountsContent) },
+          { path: "sell", element: wrapRouteElement(loadSellContent) },
+          { path: "inventory", element: wrapRouteElement(loadInventoryContent) },
+          { path: "records", element: wrapRouteElement(loadRecordsContent) },
+          { path: "reports", element: wrapRouteElement(loadReportsContent) },
         ],
       },
-      // Add more protected routes here as needed
     ],
   },
 ];
@@ -59,5 +80,5 @@ export const protectedRoutes = [
 // Fallback route: catches all undefined paths and shows a 404 page
 export const fallbackRoute = {
   path: "*",
-  element: <NotFoundPage />,
+  element: wrapRouteElement(loadNotFoundPage), // 🔥 Uses the helper
 };

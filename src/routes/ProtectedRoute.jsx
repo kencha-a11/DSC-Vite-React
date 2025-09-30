@@ -12,7 +12,7 @@ export default function ProtectedRoute({ children }) {
   const location = useLocation();
 
   // While checking authentication status, show a loader
-  if (loading) return <Loader text="Checking auth…" />;
+  if (loading) return <Loader text="Loading..." size="lg" overlay />;
 
   // If no user is logged in, redirect to /home (or login page)
   // `state.from` stores the attempted location for post-login redirect

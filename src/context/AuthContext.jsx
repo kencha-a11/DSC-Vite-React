@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
-import { login as apiLogin, logout as apiLogout, getUser } from "../api/auth";
+import { login as apiLogin, logout as apiLogout, getUser } from "../services/authServices";
 
 // Create a React Context for authentication state
 const AuthContext = createContext();
