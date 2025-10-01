@@ -10,6 +10,6 @@ import { api } from "./axios";
  * }
  */
 export async function createSale(payload) {
-  const res = await api.post("/sales", payload);
+  const res = await api.post("/sales/store", payload);
   return res.data;
 }
