@@ -1,24 +1,38 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
-export default function MessageToast({ message, duration = 5000 }) {
-  const [visible, setVisible] = useState(false);
-  const [currentMessage, setCurrentMessage] = useState("");
-
+export default function MessageToast({ message, onClose, duration = 3000 }) {
   useEffect(() => {
-    if (!message) return;
+    if (message && duration) {
+      const timer = setTimeout(() => {
+        onClose?.();
+      }, duration);
+      return () => clearTimeout(timer);
+    }
+  }, [message, duration, onClose]);
 
-    setCurrentMessage(message);
-    setVisible(true);
+  if (!message) return null;
 
-    const timer = setTimeout(() => setVisible(false), duration);
-    return () => clearTimeout(timer);
-  }, [message, duration]);
+  const { type = "info", text = "" } = message;
 
-  if (!visible) return null;
+  const colors = {
+    success: "bg-green-100 text-green-800 border-green-300",
+    error: "bg-red-100 text-red-800 border-red-300",
+    info: "bg-blue-100 text-blue-800 border-blue-300",
+  };
 
   return (
-    <div className="fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded shadow-lg transition-opacity duration-300">
-      {currentMessage}
+    <div className="fixed bottom-4 right-4 z-50">
+      <div
+        className={`flex items-center justify-between px-4 py-3 border rounded-lg shadow-md ${colors[type]}`}
+      >
+        <span>{text}</span>
+        <button
+          onClick={onClose}
+          className="ml-3 text-gray-600 hover:text-gray-900 font-bold"
+        >
+          ×
+        </button>
+      </div>
     </div>
   );
 }

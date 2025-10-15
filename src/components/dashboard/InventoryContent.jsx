@@ -3,7 +3,8 @@ import { SearchIcon, SettingsIcon, PlusIcon } from "../icons/index";
 import { useProductsData } from "../../hooks/useProductsData";
 import { useCategories } from "../../hooks/useCategories";
 import CreateCategoryModal from "../inventory/CreateCategoryModal";
-import CreateProductModal from "../inventory/CreateProductModal"; // ✅ FIXED import
+import CreateProductModal from "../inventory/CreateProductModal";
+import EditProductModal from "../inventory/EditProductModal";
 import MessageToast from "../sells/MessageToast";
 
 export default function InventoryContent() {
@@ -21,7 +22,8 @@ export default function InventoryContent() {
   const [statusFilter, setStatusFilter] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showCreateCategory, setShowCreateCategory] = useState(false);
-  const [showCreateProduct, setShowCreateProduct] = useState(false); // ✅ Product modal state
+  const [showCreateProduct, setShowCreateProduct] = useState(false);
+  const [editProduct, setEditProduct] = useState(null); // New state for editing
   const [message, setMessage] = useState(null);
 
   const dropdownRef = useRef(null);
@@ -35,11 +37,21 @@ export default function InventoryContent() {
     return stock === 0 ? "out of stock" : stock <= threshold ? "low stock" : "stock";
   };
 
-  const categoryOptions = useMemo(() => {
-    const names = categories.map((c) => c.category_name);
-    if (!names.includes("Uncategorized")) names.unshift("Uncategorized");
-    return names;
+  // Deduplicate categories
+  const uniqueCategories = useMemo(() => {
+    const map = new Map();
+    (categories || []).forEach((c) => {
+      const name = c?.category_name ?? "";
+      if (!name) return;
+      if (!map.has(name)) map.set(name, c);
+    });
+    if (!map.has("Uncategorized")) {
+      map.set("Uncategorized", { id: "uncategorized", category_name: "Uncategorized" });
+    }
+    return Array.from(map.values());
   }, [categories]);
+
+  const categoryOptions = useMemo(() => uniqueCategories.map((c) => c.category_name), [uniqueCategories]);
 
   const filteredProducts = useMemo(() => {
     const filtered = products.filter((p) => {
@@ -97,7 +109,6 @@ export default function InventoryContent() {
           />
         </div>
 
-        {/* Dropdown */}
         <div className="ml-4 relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen((prev) => !prev)}
@@ -147,9 +158,9 @@ export default function InventoryContent() {
                 className="w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring focus:border-blue-300"
               >
                 <option value="">Category</option>
-                {categoryOptions.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                {categoryOptions.map((name, idx) => (
+                  <option key={`${name}-${idx}`} value={name}>
+                    {name}
                   </option>
                 ))}
               </select>
@@ -201,7 +212,12 @@ export default function InventoryContent() {
                   </div>
                   <div>{getStatus(p)}</div>
                   <div className="flex justify-end">
-                    <SettingsIcon className="w-5 h-5 text-gray-500 cursor-pointer" />
+                    <button
+                      onClick={() => setEditProduct(p)}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <SettingsIcon className="w-5 h-5 cursor-pointer" />
+                    </button>
                   </div>
                 </div>
               ))
@@ -221,6 +237,7 @@ export default function InventoryContent() {
 
       {showCreateProduct && (
         <CreateProductModal
+          categories={categories}
           onClose={() => setShowCreateProduct(false)}
           onSuccess={() => {
             setShowCreateProduct(false);
@@ -230,7 +247,25 @@ export default function InventoryContent() {
         />
       )}
 
-      <MessageToast message={message} />
+      {editProduct && (
+        <EditProductModal
+          product={editProduct}
+          categories={categories}
+          onClose={() => setEditProduct(null)}
+          onSuccess={() => {
+            setEditProduct(null);
+            setMessage({ type: "success", text: "Product updated successfully!" });
+            refetchProducts();
+          }}
+          onDelete={() => {
+            setEditProduct(null);
+            setMessage({ type: "success", text: "Product deleted successfully!" });
+            refetchProducts();
+          }}
+        />
+      )}
+
+      <MessageToast message={message} onClose={() => setMessage(null)} />
     </div>
   );
 }

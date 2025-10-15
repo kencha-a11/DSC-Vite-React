@@ -45,3 +45,24 @@ export async function createProduct(formData) {
   });
   return response.data;
 }
+
+/**
+ * Update an existing product
+ * @param {number} id - Product ID
+ * @param {FormData} formData - Updated product data
+ */
+export async function updateProduct(id, formData) {
+  const response = await api.post(`/products/${id}?_method=PUT`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+}
+
+/**
+ * Delete a product
+ * @param {number} id - Product ID
+ */
+export async function deleteProduct(id) {
+  const response = await api.delete(`/products/${id}`);
+  return response.data;
+}
