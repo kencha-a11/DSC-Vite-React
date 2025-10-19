@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useProductsData } from "../../hooks/useProductsData";
-import ProductRow from "../../components/sells/ProductRow";
-import CartItem from "../../components/sells/CartItem";
-import MessageToast from "../../components/sells/MessageToast";
+import ProductRow from "../sells/ProductRow";
+import CartItem from "../sells/CartItem";
+import MessageToast from "../sells/MessageToast";
 import { createSale } from "../../api/sales";
-import ConfirmModal from "../../components/sells/ConfirmModal";
+import ConfirmModal from "../sells/ConfirmModal";
 
 const formatPeso = (n) => `P ${Number(n ?? 0).toFixed(2)}`;
 const normalizeCategory = (p) =>

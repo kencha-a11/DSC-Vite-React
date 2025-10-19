@@ -8,12 +8,12 @@ export const loadNotFoundPage = () => import('./status/NotFoundPage');
 
 // Nested Dashboard Content Components
 // Centralizing these here also makes the routes file cleaner.
-export const loadDashboardContent = () => import('../components/dashboard/DashboardContent');
-export const loadAccountsContent = () => import('../components/dashboard/AccountsContent');
-export const loadSellContent = () => import('../components/dashboard/SellContent');
-export const loadInventoryContent = () => import('../components/dashboard/InventoryContent');
-export const loadRecordsContent = () => import('../components/dashboard/RecordsContent');
-export const loadReportsContent = () => import('../components/dashboard/ReportsContent');
+export const loadDashboardContent = () => import('../components/contents/DashboardContent');
+export const loadAccountsContent = () => import('../components/contents/AccountsContent');
+export const loadSellContent = () => import('../components/contents/SellContent');
+export const loadInventoryContent = () => import('../components/contents/InventoryContent');
+export const loadRecordsContent = () => import('../components/contents/RecordsContent');
+export const loadReportsContent = () => import('../components/contents/ReportsContent');
 
 // Benefit: If any file path changes (e.g., 'auth/LoginPage' moves), you only update it ONCE here.
 export const loadTestDataPage = () => import('../pages/TestData')

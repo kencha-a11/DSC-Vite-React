@@ -1,6 +1,6 @@
 // src/pages/Dashboard.jsx
 import { Outlet } from "react-router-dom";
-import Sidebar from "../components/dashboard/SideBar";
+import Sidebar from "../components/contents/SideBar";
 
 export default function Dashboard() {
   return (
