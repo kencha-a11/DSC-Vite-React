@@ -9,7 +9,7 @@ export default function Dashboard() {
       <Sidebar />
 
       {/* Main content */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto">
         <div className="max-w-8xl mx-auto">
           <Outlet />
         </div>
