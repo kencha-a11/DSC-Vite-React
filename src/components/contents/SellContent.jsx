@@ -6,9 +6,32 @@ import MessageToast from "../sells/MessageToast";
 import { createSale } from "../../api/sales";
 import ConfirmModal from "../sells/ConfirmModal";
 
-const formatPeso = (n) => `P ${Number(n ?? 0).toFixed(2)}`;
-const normalizeCategory = (p) =>
-  p?.category?.category_name ?? p?.category?.name ?? p?.category ?? "Uncategorized";
+const formatPeso = (n) => `₱ ${Number(n ?? 0).toFixed(2)}`;
+
+// ✅ Handles arrays, single objects, and fallback cases
+const normalizeCategory = (p) => {
+  const cat = p?.category || p?.categories;
+  if (!cat) return "Uncategorized";
+
+  if (Array.isArray(cat)) {
+    const names = cat.map((c) => c?.category_name || c?.name || "Unknown");
+    return names.join(", ");
+  }
+
+  if (typeof cat === "object") {
+    return (
+      cat.category_name ||
+      cat.name ||
+      cat.data?.category_name ||
+      cat.data?.name ||
+      "Uncategorized"
+    );
+  }
+
+  if (typeof cat === "string") return cat;
+
+  return "Uncategorized";
+};
 
 export default function SellsContent() {
   const { data: products = [], isLoading, isError } = useProductsData();
@@ -19,7 +42,7 @@ export default function SellsContent() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Auto-clear messages
+  // Auto-clear toast messages
   useEffect(() => {
     if (!message) return;
     const timer = setTimeout(() => setMessage(null), 1500);
@@ -33,17 +56,24 @@ export default function SellsContent() {
   );
 
   const getStockFor = useCallback(
-    (id) => Number(productsById[id]?.stock_quantity ?? productsById[id]?.stock ?? 0),
+    (id) =>
+      Number(productsById[id]?.stock_quantity ?? productsById[id]?.stock ?? 0),
     [productsById]
   );
 
-  // Categories
+  // ✅ Collect all unique category names
   const categories = useMemo(() => {
-    const cats = products.map((p) => normalizeCategory(p));
+    const cats = products.flatMap((p) => {
+      const c = p?.categories || p?.category;
+      if (!c) return ["Uncategorized"];
+      if (Array.isArray(c))
+        return c.map((x) => x?.category_name || x?.name || "Uncategorized");
+      return [c?.category_name || c?.name || "Uncategorized"];
+    });
     return ["All", ...new Set(cats)];
   }, [products]);
 
-  // Filtered products
+  // Filter products by category and search
   const filteredProducts = useMemo(() => {
     const s = search.trim().toLowerCase();
     return products.filter((p) => {
@@ -56,7 +86,7 @@ export default function SellsContent() {
     });
   }, [products, search, selectedCategory]);
 
-  // Sync cart with stock
+  // Keep cart items valid when stock changes
   useEffect(() => {
     setCartItems((prev) =>
       prev
@@ -72,16 +102,17 @@ export default function SellsContent() {
   const handleAddToCartFromList = useCallback(
     (productId) => {
       const product = productsById[productId];
-      if (!product) return setMessage("Product not available");
+      if (!product) return setMessage({ type: "error", text: "Product not available" });
 
       const stock = getStockFor(productId);
-      if (stock <= 0) return setMessage("Out of stock");
+      if (stock <= 0)
+        return setMessage({ type: "error", text: "Out of stock" });
 
       setCartItems((prev) => {
         const existing = prev.find((it) => it.id === productId);
         if (existing) {
           if (existing.quantity >= stock) {
-            setMessage("Stock limit reached");
+            setMessage({ type: "info", text: "Stock limit reached" });
             return prev;
           }
           return prev.map((it) =>
@@ -109,9 +140,11 @@ export default function SellsContent() {
 
   const handleDecrement = useCallback((id) => {
     setCartItems((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, quantity: it.quantity - 1 } : it)).filter(
-        (it) => it.quantity > 0
-      )
+      prev
+        .map((it) =>
+          it.id === id ? { ...it, quantity: it.quantity - 1 } : it
+        )
+        .filter((it) => it.quantity > 0)
     );
   }, []);
 
@@ -126,7 +159,7 @@ export default function SellsContent() {
 
   const handleCompletePurchase = useCallback(() => {
     if (cartItems.length === 0) {
-      setMessage("Cart is empty");
+      setMessage({ type: "info", text: "Cart is empty" });
       return;
     }
     setShowConfirm(true);
@@ -141,11 +174,11 @@ export default function SellsContent() {
         total_amount: total,
       };
       await createSale(payload);
-      setMessage("Purchase completed");
+      setMessage({ type: "success", text: "Purchase completed" });
       setCartItems([]);
     } catch (err) {
       console.error("Purchase failed:", err);
-      setMessage("Failed to complete purchase");
+      setMessage({ type: "error", text: "Failed to complete purchase" });
     } finally {
       setIsProcessing(false);
     }
@@ -153,11 +186,12 @@ export default function SellsContent() {
 
   // --- UI ---
   if (isLoading) return <div className="p-6 text-center">Loading products...</div>;
-  if (isError) return <div className="p-6 text-center text-red-500">Failed to load products.</div>;
+  if (isError)
+    return <div className="p-6 text-center text-red-500">Failed to load products.</div>;
 
   return (
     <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-4rem)]">
-      {/* Products list */}
+      {/* Products List */}
       <div className="flex-1 bg-white border rounded-lg shadow-sm flex flex-col overflow-hidden">
         <div className="p-4 border-b">
           <h2 className="text-2xl font-semibold">Sell</h2>
@@ -186,7 +220,9 @@ export default function SellsContent() {
 
         <div className="flex-1 overflow-y-auto divide-y">
           {filteredProducts.length === 0 ? (
-            <div className="text-center text-sm text-gray-500 py-8">No products found</div>
+            <div className="text-center text-sm text-gray-500 py-8">
+              No products found
+            </div>
           ) : (
             filteredProducts.map((p) => (
               <ProductRow key={p.id} product={p} onAdd={handleAddToCartFromList} />
@@ -198,12 +234,14 @@ export default function SellsContent() {
       {/* Cart */}
       <div className="w-full md:w-1/3 bg-white border rounded-lg shadow-sm flex flex-col overflow-hidden">
         <div className="p-4 border-b">
-          <h3 className="text-center text-lg font-semibold">Transaction summary</h3>
+          <h3 className="text-center text-lg font-semibold">Transaction Summary</h3>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
           {cartItems.length === 0 ? (
-            <div className="text-center text-sm text-gray-500 py-8">No items selected</div>
+            <div className="text-center text-sm text-gray-500 py-8">
+              No items selected
+            </div>
           ) : (
             <div className="space-y-4">
               {cartItems.map((it) => (
@@ -214,7 +252,9 @@ export default function SellsContent() {
                   stock={getStockFor(it.id)}
                   onIncrement={handleIncrement}
                   onDecrement={handleDecrement}
-                  onLimit={() => setMessage("Stock limit reached")}
+                  onLimit={() =>
+                    setMessage({ type: "info", text: "Stock limit reached" })
+                  }
                 />
               ))}
             </div>
@@ -234,7 +274,6 @@ export default function SellsContent() {
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-blue-600 hover:bg-blue-700"
             }`}
-            type="button"
           >
             {cartItems.length === 0
               ? "Empty Cart"
@@ -245,8 +284,8 @@ export default function SellsContent() {
         </div>
       </div>
 
-      <MessageToast message={message} />
-
+      {/* Toast + Modal */}
+      <MessageToast message={message} onClose={() => setMessage(null)} />
       {showConfirm && (
         <ConfirmModal
           cartItems={cartItems}

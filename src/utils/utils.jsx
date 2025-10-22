@@ -20,3 +20,12 @@ export function wrapRouteElement(componentLoader) {
     </Suspense>
   );
 }
+
+export const normalizeCategory = (product) => {
+  if (Array.isArray(product?.categories) && product.categories.length > 0) {
+    return product.categories.map(c => c.category_name || c.name).join(", ");
+  }
+  return product?.category?.category_name ?? product?.category?.name ?? product?.category ?? "Uncategorized";
+};
+
+export const formatPeso = (amount) => `₱ ${Number(amount ?? 0).toFixed(2)}`;

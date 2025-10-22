@@ -1,15 +1,12 @@
-// src/routes/routes.jsx (The Cleanest Version)
+// src/routes/routes.jsx
 
-// Note: Remove 'lazy' and 'Suspense' imports as they are now in utils.jsx
 import App from "../App";
 import ProtectedRoute from "../routes/ProtectedRoute";
-import { wrapRouteElement } from "../utils/utils"; // Import the helper function
-
-// 🤩 Single, clean import from the centralized loader file
-import { 
-  loadHomePage, 
-  loadLoginPage, 
-  loadDashboard, 
+import { wrapRouteElement } from "../utils/utils";
+import {
+  loadHomePage,
+  loadLoginPage,
+  loadDashboard,
   loadNotFoundPage,
   loadDashboardContent,
   loadAccountsContent,
@@ -17,39 +14,24 @@ import {
   loadInventoryContent,
   loadRecordsContent,
   loadReportsContent,
-  loadTestDataPage
+  loadTestDataPage,
 } from "../pages";
 
-// **STEP ELIMINATED:** The block of 'const HomePage = lazy(loadHomePage);' is no longer necessary.
-
-// Public routes: accessible without authentication
+// ✅ Public routes
 export const publicRoutes = [
   {
     path: "/",
-    element: <App />, 
+    element: <App />,
     children: [
-      { 
-        index: true, 
-        element: wrapRouteElement(loadHomePage) 
-      }, 
-      { 
-        path: "home", 
-        element: wrapRouteElement(loadHomePage) 
-      }, 
-      { 
-        path: "login", 
-        element: wrapRouteElement(loadLoginPage) 
-      },
-      // You can add TestDataPage here if it's public
-      {
-        path: "test-data",
-        element: wrapRouteElement(loadTestDataPage)
-      }
+      { index: true, element: wrapRouteElement(loadHomePage) },
+      { path: "home", element: wrapRouteElement(loadHomePage) },
+      { path: "login", element: wrapRouteElement(loadLoginPage) },
+      { path: "test-data", element: wrapRouteElement(loadTestDataPage) },
     ],
   },
 ];
 
-// Protected routes: only accessible when authenticated
+// ✅ Protected routes (Dashboard)
 export const protectedRoutes = [
   {
     path: "/",
@@ -57,28 +39,50 @@ export const protectedRoutes = [
     children: [
       {
         path: "dashboard",
-        // The Dashboard component needs to be lazily loaded inside ProtectedRoute
         element: (
           <ProtectedRoute>
             {wrapRouteElement(loadDashboard)}
           </ProtectedRoute>
         ),
         children: [
-          // Nested routes also use the helper
-          { index: true, element: wrapRouteElement(loadDashboardContent) },
-          { path: "accounts", element: wrapRouteElement(loadAccountsContent) },
-          { path: "sell", element: wrapRouteElement(loadSellContent) },
-          { path: "inventory", element: wrapRouteElement(loadInventoryContent) },
-          { path: "records", element: wrapRouteElement(loadRecordsContent) },
-          { path: "reports", element: wrapRouteElement(loadReportsContent) },
+          { 
+            index: true, 
+            element: wrapRouteElement(loadDashboardContent),
+            handle: { title: "Dashboard" },
+          },
+          { 
+            path: "accounts", 
+            element: wrapRouteElement(loadAccountsContent),
+            handle: { title: "Accounts" },
+          },
+          { 
+            path: "sell", 
+            element: wrapRouteElement(loadSellContent),
+            handle: { title: "Sell" },
+          },
+          { 
+            path: "inventory", 
+            element: wrapRouteElement(loadInventoryContent),
+            handle: { title: "Inventory" },
+          },
+          { 
+            path: "records", 
+            element: wrapRouteElement(loadRecordsContent),
+            handle: { title: "Records" },
+          },
+          { 
+            path: "reports", 
+            element: wrapRouteElement(loadReportsContent),
+            handle: { title: "Reports" },
+          },
         ],
       },
     ],
   },
 ];
 
-// Fallback route: catches all undefined paths and shows a 404 page
+// Fallback route
 export const fallbackRoute = {
   path: "*",
-  element: wrapRouteElement(loadNotFoundPage), // 🔥 Uses the helper
+  element: wrapRouteElement(loadNotFoundPage),
 };

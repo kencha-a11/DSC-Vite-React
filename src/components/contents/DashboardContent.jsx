@@ -15,7 +15,6 @@ import {
 import StatCard from "../dashboard/StatCard";
 import SalesTrendChart from "../dashboard/SalesTrendChart";
 import TopProductsChart from "../dashboard/TopProductChart";
-import ContentTitle from "../contents/ContentTitle";
 import { getDashboardData } from "../../services/dashboardServices";
 
 ChartJS.register(
@@ -118,7 +117,6 @@ export default function DashboardContent() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-white rounded shadow">
-      <ContentTitle Title="Dashboard" />
 
       <div className="flex-1 overflow-auto p-4 space-y-4">
         {/* Top Metrics */}

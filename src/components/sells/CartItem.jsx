@@ -1,16 +1,12 @@
-const normalizeCategory = (p) =>
-  p?.category?.category_name ?? p?.category?.name ?? p?.category ?? "Uncategorized";
-
-const formatPeso = (n) => `P ${Number(n ?? 0).toFixed(2)}`;
+import { formatPeso } from "../../utils/utils";
+import { normalizeCategory } from "../../utils/utils";
 
 export default function CartItem({ item, product, stock, onIncrement, onDecrement, onLimit }) {
   const name = product?.name ?? "Unavailable";
   const price = Number(product?.price ?? 0);
   const img =
     product?.image ||
-    `https://via.placeholder.com/64?text=${encodeURIComponent(
-      (name || "P").charAt(0)
-    )}`;
+    `https://via.placeholder.com/64?text=${encodeURIComponent((name || "P").charAt(0))}`;
 
   const total = price * item.quantity;
 

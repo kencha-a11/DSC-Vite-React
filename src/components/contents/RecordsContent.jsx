@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import TimeLog from "../records/TimeLog";
 import SalesLog from "../records/SalesLog";
 import InventoryLog from "../records/InventoryLog";
-import ContentTitle from "./ContentTitle";
 
 const RecordsContent = () => {
   const [activeTab, setActiveTab] = useState("time"); // "time", "sales", "inventory"
@@ -10,7 +9,6 @@ const RecordsContent = () => {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-white rounded shadow">
       {/* Section A */}
-      <ContentTitle Title="Records" />
 
       {/* Section B */}
       <div className="flex-1 flex flex-col">
