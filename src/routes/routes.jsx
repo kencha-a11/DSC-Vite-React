@@ -14,7 +14,6 @@ import {
   loadInventoryContent,
   loadRecordsContent,
   loadReportsContent,
-  loadTestDataPage,
 } from "../pages";
 
 // ✅ Public routes
@@ -26,7 +25,6 @@ export const publicRoutes = [
       { index: true, element: wrapRouteElement(loadHomePage) },
       { path: "home", element: wrapRouteElement(loadHomePage) },
       { path: "login", element: wrapRouteElement(loadLoginPage) },
-      { path: "test-data", element: wrapRouteElement(loadTestDataPage) },
     ],
   },
 ];

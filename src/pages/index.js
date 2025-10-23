@@ -14,6 +14,3 @@ export const loadSellContent = () => import('../components/contents/SellContent'
 export const loadInventoryContent = () => import('../components/contents/InventoryContent');
 export const loadRecordsContent = () => import('../components/contents/RecordsContent');
 export const loadReportsContent = () => import('../components/contents/ReportsContent');
-
-// Benefit: If any file path changes (e.g., 'auth/LoginPage' moves), you only update it ONCE here.
-export const loadTestDataPage = () => import('../pages/TestData')

@@ -1,5 +1,4 @@
 // src/routes/utils.jsx (New File)
-
 import { lazy, Suspense } from "react";
 
 // A simple loading component for all lazy routes
@@ -21,11 +20,19 @@ export function wrapRouteElement(componentLoader) {
   );
 }
 
-export const normalizeCategory = (product) => {
-  if (Array.isArray(product?.categories) && product.categories.length > 0) {
-    return product.categories.map(c => c.category_name || c.name).join(", ");
+export function normalizeCategory(product) {
+  // Use categories array if exists
+  if (product?.categories?.length) {
+    return product.categories[0].category_name || "No Category";
   }
-  return product?.category?.category_name ?? product?.category?.name ?? product?.category ?? "Uncategorized";
-};
+  // Single category relation
+  if (product?.category) {
+    return product.category.category_name || "No Category";
+  }
+  // Fallback
+  return "No Category";
+}
+
 
 export const formatPeso = (amount) => `₱ ${Number(amount ?? 0).toFixed(2)}`;
+

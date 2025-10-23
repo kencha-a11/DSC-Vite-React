@@ -1,112 +1,56 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useProductsData } from "../../hooks/useProductsData";
+import { createSale } from "../../api/sales";
+import { formatPeso } from "../../utils/utils";
 import ProductRow from "../sells/ProductRow";
 import CartItem from "../sells/CartItem";
 import MessageToast from "../sells/MessageToast";
-import { createSale } from "../../api/sales";
 import ConfirmModal from "../sells/ConfirmModal";
-
-const formatPeso = (n) => `₱ ${Number(n ?? 0).toFixed(2)}`;
-
-// ✅ Handles arrays, single objects, and fallback cases
-const normalizeCategory = (p) => {
-  const cat = p?.category || p?.categories;
-  if (!cat) return "Uncategorized";
-
-  if (Array.isArray(cat)) {
-    const names = cat.map((c) => c?.category_name || c?.name || "Unknown");
-    return names.join(", ");
-  }
-
-  if (typeof cat === "object") {
-    return (
-      cat.category_name ||
-      cat.name ||
-      cat.data?.category_name ||
-      cat.data?.name ||
-      "Uncategorized"
-    );
-  }
-
-  if (typeof cat === "string") return cat;
-
-  return "Uncategorized";
-};
+import { useFilteredProducts } from "../../hooks/useFilterProduct";
+import ProductFilter from "../sells/ProductFilter";
 
 export default function SellsContent() {
-  const { data: products = [], isLoading, isError } = useProductsData();
+  const { data: products = [], isLoading, isError, refetch } = useProductsData();
   const [cartItems, setCartItems] = useState([]);
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
   const [message, setMessage] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Auto-clear toast messages
-  useEffect(() => {
-    if (!message) return;
-    const timer = setTimeout(() => setMessage(null), 1500);
-    return () => clearTimeout(timer);
-  }, [message]);
+  const {
+    searchInput,
+    setSearchInput,
+    selectedCategory,
+    setSelectedCategory,
+    categories,
+    filteredProducts,
+  } = useFilteredProducts(products);
 
-  // Index products by ID
-  const productsById = useMemo(
-    () => Object.fromEntries(products.map((p) => [p.id, p])),
+  const productsById = useMemo(() => Object.fromEntries(products.map((p) => [p.id, p])), [products]);
+  const stockById = useMemo(
+    () => Object.fromEntries(products.map((p) => [p.id, Number(p.stock_quantity ?? p.stock ?? 0)])),
     [products]
   );
+  const getStockFor = useCallback((id) => stockById[id] ?? 0, [stockById]);
 
-  const getStockFor = useCallback(
-    (id) =>
-      Number(productsById[id]?.stock_quantity ?? productsById[id]?.stock ?? 0),
-    [productsById]
+  const updateCartItem = useCallback(
+    (id, quantity) => {
+      setCartItems((prev) => {
+        const stock = getStockFor(id);
+        if (quantity <= 0) return prev.filter((it) => it.id !== id);
+        const qty = Math.min(quantity, stock);
+        return prev.map((it) => (it.id === id ? { ...it, quantity: qty } : it));
+      });
+    },
+    [getStockFor]
   );
 
-  // ✅ Collect all unique category names
-  const categories = useMemo(() => {
-    const cats = products.flatMap((p) => {
-      const c = p?.categories || p?.category;
-      if (!c) return ["Uncategorized"];
-      if (Array.isArray(c))
-        return c.map((x) => x?.category_name || x?.name || "Uncategorized");
-      return [c?.category_name || c?.name || "Uncategorized"];
-    });
-    return ["All", ...new Set(cats)];
-  }, [products]);
-
-  // Filter products by category and search
-  const filteredProducts = useMemo(() => {
-    const s = search.trim().toLowerCase();
-    return products.filter((p) => {
-      const name = (p.name ?? "").toLowerCase();
-      const category = normalizeCategory(p).toLowerCase();
-      const matchesCategory =
-        selectedCategory === "All" || normalizeCategory(p) === selectedCategory;
-      const matchesSearch = !s || name.includes(s) || category.includes(s);
-      return matchesCategory && matchesSearch;
-    });
-  }, [products, search, selectedCategory]);
-
-  // Keep cart items valid when stock changes
-  useEffect(() => {
-    setCartItems((prev) =>
-      prev
-        .map((it) => {
-          const stock = getStockFor(it.id);
-          return { ...it, quantity: Math.min(it.quantity, Math.max(0, stock)) };
-        })
-        .filter((it) => it.quantity > 0)
-    );
-  }, [getStockFor]);
-
-  // --- Cart actions ---
   const handleAddToCartFromList = useCallback(
     (productId) => {
       const product = productsById[productId];
       if (!product) return setMessage({ type: "error", text: "Product not available" });
 
       const stock = getStockFor(productId);
-      if (stock <= 0)
-        return setMessage({ type: "error", text: "Out of stock" });
+      if (stock <= 0) return setMessage({ type: "error", text: "Out of stock" });
 
       setCartItems((prev) => {
         const existing = prev.find((it) => it.id === productId);
@@ -115,9 +59,7 @@ export default function SellsContent() {
             setMessage({ type: "info", text: "Stock limit reached" });
             return prev;
           }
-          return prev.map((it) =>
-            it.id === productId ? { ...it, quantity: it.quantity + 1, product } : it
-          );
+          return prev.map((it) => (it.id === productId ? { ...it, quantity: it.quantity + 1, product } : it));
         }
         return [...prev, { id: productId, quantity: 1, product }];
       });
@@ -125,40 +67,13 @@ export default function SellsContent() {
     [productsById, getStockFor]
   );
 
-  const handleIncrement = useCallback(
-    (id) => {
-      setCartItems((prev) =>
-        prev.map((it) =>
-          it.id === id && it.quantity < getStockFor(id)
-            ? { ...it, quantity: it.quantity + 1 }
-            : it
-        )
-      );
-    },
-    [getStockFor]
-  );
-
-  const handleDecrement = useCallback((id) => {
-    setCartItems((prev) =>
-      prev
-        .map((it) =>
-          it.id === id ? { ...it, quantity: it.quantity - 1 } : it
-        )
-        .filter((it) => it.quantity > 0)
-    );
-  }, []);
-
   const total = useMemo(
-    () =>
-      cartItems.reduce((sum, it) => {
-        const price = Number(productsById[it.id]?.price ?? 0);
-        return sum + price * it.quantity;
-      }, 0),
+    () => cartItems.reduce((sum, it) => sum + (Number(productsById[it.id]?.price ?? 0) * it.quantity), 0),
     [cartItems, productsById]
   );
 
   const handleCompletePurchase = useCallback(() => {
-    if (cartItems.length === 0) {
+    if (!cartItems.length) {
       setMessage({ type: "info", text: "Cart is empty" });
       return;
     }
@@ -169,79 +84,54 @@ export default function SellsContent() {
     setShowConfirm(false);
     setIsProcessing(true);
     try {
-      const payload = {
-        items: cartItems.map((it) => ({ product_id: it.id, quantity: it.quantity })),
-        total_amount: total,
-      };
-      await createSale(payload);
-      setMessage({ type: "success", text: "Purchase completed" });
+      // 1️⃣ Complete sale in backend
+      await createSale({ items: cartItems.map((it) => ({ product_id: it.id, quantity: it.quantity })), total_amount: total });
+
+      // 2️⃣ Clear cart and show success message
       setCartItems([]);
+      setMessage({ type: "success", text: "Purchase completed" });
+
+      // 3️⃣ Refetch products to update stock in frontend
+      if (refetch) await refetch();
     } catch (err) {
       console.error("Purchase failed:", err);
       setMessage({ type: "error", text: "Failed to complete purchase" });
     } finally {
       setIsProcessing(false);
     }
-  }, [cartItems, total]);
+  }, [cartItems, total, refetch]);
 
-  // --- UI ---
   if (isLoading) return <div className="p-6 text-center">Loading products...</div>;
-  if (isError)
-    return <div className="p-6 text-center text-red-500">Failed to load products.</div>;
+  if (isError) return <div className="p-6 text-center text-red-500">Failed to load products.</div>;
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-4rem)]">
+    <div className="flex flex-col md:flex-row gap-6 h-[86vh]">
       {/* Products List */}
-      <div className="flex-1 bg-white border rounded-lg shadow-sm flex flex-col overflow-hidden">
-        <div className="p-4 border-b">
-          <h2 className="text-2xl font-semibold">Sell</h2>
-        </div>
-
-        <div className="p-4 border-b flex gap-3">
-          <input
-            type="text"
-            placeholder="Search product..."
-            className="flex-1 border rounded px-3 py-2 text-sm focus:outline-none focus:ring focus:border-blue-300"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-40 border rounded px-3 py-2 text-sm focus:outline-none focus:ring focus:border-blue-300"
-          >
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
-
+      <div className="flex-1 bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col overflow-hidden">
+        <ProductFilter
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          searchInput={searchInput}
+          onSearchChange={setSearchInput}
+        />
         <div className="flex-1 overflow-y-auto divide-y">
           {filteredProducts.length === 0 ? (
-            <div className="text-center text-sm text-gray-500 py-8">
-              No products found
-            </div>
+            <div className="text-center text-sm text-gray-500 py-8">No products found</div>
           ) : (
-            filteredProducts.map((p) => (
-              <ProductRow key={p.id} product={p} onAdd={handleAddToCartFromList} />
-            ))
+            filteredProducts.map((p) => <ProductRow key={p.id} product={p} onAdd={handleAddToCartFromList} />)
           )}
         </div>
       </div>
 
       {/* Cart */}
-      <div className="w-full md:w-1/3 bg-white border rounded-lg shadow-sm flex flex-col overflow-hidden">
-        <div className="p-4 border-b">
+      <div className="w-full md:w-1/3 bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col overflow-hidden">
+        <div className="p-6 border-b border-gray-200">
           <h3 className="text-center text-lg font-semibold">Transaction Summary</h3>
         </div>
-
         <div className="flex-1 overflow-y-auto p-4">
           {cartItems.length === 0 ? (
-            <div className="text-center text-sm text-gray-500 py-8">
-              No items selected
-            </div>
+            <div className="text-center text-sm text-gray-500 py-8">No items selected</div>
           ) : (
             <div className="space-y-4">
               {cartItems.map((it) => (
@@ -250,18 +140,14 @@ export default function SellsContent() {
                   item={it}
                   product={it.product}
                   stock={getStockFor(it.id)}
-                  onIncrement={handleIncrement}
-                  onDecrement={handleDecrement}
-                  onLimit={() =>
-                    setMessage({ type: "info", text: "Stock limit reached" })
-                  }
+                  onUpdateQuantity={updateCartItem}
+                  onLimit={() => setMessage({ type: "info", text: "Stock limit reached" })}
                 />
               ))}
             </div>
           )}
         </div>
-
-        <div className="border-t p-4">
+        <div className="border-t border-gray-200 p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium">Total</span>
             <span className="text-sm font-semibold">{formatPeso(total)}</span>
@@ -270,28 +156,18 @@ export default function SellsContent() {
             onClick={handleCompletePurchase}
             disabled={cartItems.length === 0 || isProcessing}
             className={`w-full py-2 rounded text-white text-sm font-medium ${
-              cartItems.length === 0 || isProcessing
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
+              cartItems.length === 0 || isProcessing ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
-            {cartItems.length === 0
-              ? "Empty Cart"
-              : isProcessing
-              ? "Processing..."
-              : "Complete Purchase"}
+            {cartItems.length === 0 ? "Empty Cart" : isProcessing ? "Processing..." : "Complete Purchase"}
           </button>
         </div>
       </div>
 
       {/* Toast + Modal */}
-      <MessageToast message={message} onClose={() => setMessage(null)} />
+      <MessageToast message={message} onClose={() => setMessage(null)} duration={1500} />
       {showConfirm && (
-        <ConfirmModal
-          cartItems={cartItems}
-          onClose={() => setShowConfirm(false)}
-          onConfirm={confirmPurchase}
-        />
+        <ConfirmModal cartItems={cartItems} onClose={() => setShowConfirm(false)} onConfirm={confirmPurchase} />
       )}
     </div>
   );
