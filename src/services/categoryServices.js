@@ -4,10 +4,7 @@ import api from "../api/axios";
  * Fetch all categories
  */
 export async function getCategories() {
-  console.log("🔵 getCategories called");
-  console.log("🔵 Axios baseURL:", api.defaults.baseURL);
   const response = await api.get("/categories");
-  console.log("✅ Categories fetched:", response.data);
   return response.data;
 }
 

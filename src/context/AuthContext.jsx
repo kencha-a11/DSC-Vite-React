@@ -20,12 +20,10 @@ export const AuthProvider = ({ children }) => {
         setError(null);
         const data = await getUser(); // API call to get user info
         setUser(data);
-        console.log("User authenticated on startup:", data);
       } catch (err) {
         setUser(null);
         // If it's a 401, it just means no active session (not an actual error)
         if (err.response?.status === 401) {
-          console.log("No authenticated user found (expected for fresh visits)");
         } else {
           console.error("Unexpected error fetching user:", err);
           setError("Failed to fetch user data");
@@ -45,7 +43,6 @@ export const AuthProvider = ({ children }) => {
       await apiLogin(credentials); // Send login request
       const data = await getUser(); // Fetch updated user
       setUser(data);
-      console.log("Login successful, user set:", data);
       return { success: true };
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Login failed";
@@ -61,14 +58,12 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await apiLogout();
-      console.log("Logout API call successful");
     } catch (err) {
       console.warn("Logout API call failed:", err);
       // Even if API fails, clear local session
     } finally {
       setUser(null);
       setError(null);
-      console.log("User logged out locally");
     }
   };
 

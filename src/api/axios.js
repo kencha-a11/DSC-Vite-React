@@ -42,13 +42,6 @@ api.interceptors.request.use(
     if (csrfToken) {
       config.headers['X-XSRF-TOKEN'] = csrfToken;
     }
-
-    // Debug log for outgoing requests
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, {
-      data: config.data,
-      headers: config.headers,
-      cookies: document.cookie,
-    });
     return config;
   },
   (error) => {
@@ -60,10 +53,6 @@ api.interceptors.request.use(
 // Add response interceptor: log API responses or errors
 api.interceptors.response.use(
   (response) => {
-    console.log(`API Response: ${response.status} ${response.config.url}`, {
-      data: response.data,
-      headers: response.headers,
-    });
     return response;
   },
   (error) => {

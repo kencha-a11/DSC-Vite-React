@@ -105,33 +105,75 @@ export default function SellsContent() {
   if (isError) return <div className="p-6 text-center text-red-500">Failed to load products.</div>;
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 h-[86vh]">
-      {/* Products List */}
-      <div className="flex-1 bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col overflow-hidden">
-        <ProductFilter
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          searchInput={searchInput}
-          onSearchChange={setSearchInput}
-        />
-        <div className="flex-1 overflow-y-auto divide-y">
+    <div className="flex flex-col md:flex-row h-[91vh]">
+      {/* Left Section: Product List */}
+      <div className="flex-1 bg-white border border-gray-200 rounded-xl flex flex-col overflow-hidden mt-4 mx-4">
+        {/* Search + Filter */}
+        <div className="p-4 border-b border-gray-200 flex gap-3">
+          <input
+            type="text"
+            placeholder="Search items"
+            className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-40 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700
+             focus:border-pink-500 focus:ring-1 focus:ring-pink-500
+             focus:outline-none transition-colors duration-200"
+          >
+            {categories.map((c) => (
+              <option key={c} value={c} className="truncate">
+                {c}
+              </option>
+            ))}
+          </select>
+
+
+
+
+
+        </div>
+
+        {/* Products List */}
+        <div className="flex-1 overflow-y-auto px-4 py-2">
           {filteredProducts.length === 0 ? (
-            <div className="text-center text-sm text-gray-500 py-8">No products found</div>
+            <div className="text-center text-gray-500 text-sm py-8">
+              No products found
+            </div>
           ) : (
-            filteredProducts.map((p) => <ProductRow key={p.id} product={p} onAdd={handleAddToCartFromList} />)
+            <div className="space-y-3">
+              {filteredProducts.map((p) => (
+                <ProductRow key={p.id} product={p} onAdd={handleAddToCartFromList} />
+              ))}
+            </div>
           )}
         </div>
       </div>
 
-      {/* Cart */}
-      <div className="w-full md:w-1/3 bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-center text-lg font-semibold">Transaction Summary</h3>
+      {/* Right Section: Transaction Summary */}
+      <div className="w-full md:w-1/3 bg-white border border-gray-200 flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+          <h3 className="font-semibold text-gray-800">Transaction summary</h3>
+          {cartItems.length > 0 && (
+            <button
+              onClick={() => setCartItems([])}
+              className="text-xs font-medium hover:text-gray-700 transition border-2 border-gray-200 p-1 px-2 rounded-md bg-gray-100"
+            >
+              Clear all
+            </button>
+          )}
         </div>
+
+        {/* Cart Items */}
         <div className="flex-1 overflow-y-auto p-4">
           {cartItems.length === 0 ? (
-            <div className="text-center text-sm text-gray-500 py-8">No items selected</div>
+            <div className="text-center text-sm text-gray-500 py-8">
+              No items selected
+            </div>
           ) : (
             <div className="space-y-4">
               {cartItems.map((it) => (
@@ -141,34 +183,52 @@ export default function SellsContent() {
                   product={it.product}
                   stock={getStockFor(it.id)}
                   onUpdateQuantity={updateCartItem}
-                  onLimit={() => setMessage({ type: "info", text: "Stock limit reached" })}
+                  onLimit={() =>
+                    setMessage({ type: "info", text: "Stock limit reached" })
+                  }
                 />
               ))}
             </div>
           )}
         </div>
+
+        {/* Total + Confirm */}
         <div className="border-t border-gray-200 p-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex justify-between items-center mb-3">
             <span className="text-sm font-medium">Total</span>
             <span className="text-sm font-semibold">{formatPeso(total)}</span>
           </div>
           <button
             onClick={handleCompletePurchase}
             disabled={cartItems.length === 0 || isProcessing}
-            className={`w-full py-2 rounded text-white text-sm font-medium ${
-              cartItems.length === 0 || isProcessing ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-            }`}
+            className={`w-full py-2 rounded-md text-white text-sm font-medium transition-colors ${cartItems.length === 0 || isProcessing
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-pink-500 hover:bg-pink-600"
+              }`}
           >
-            {cartItems.length === 0 ? "Empty Cart" : isProcessing ? "Processing..." : "Complete Purchase"}
+            {cartItems.length === 0
+              ? "Empty Cart"
+              : isProcessing
+                ? "Processing..."
+                : "Confirm purchase"}
           </button>
         </div>
       </div>
 
       {/* Toast + Modal */}
-      <MessageToast message={message} onClose={() => setMessage(null)} duration={1500} />
+      <MessageToast
+        message={message}
+        onClose={() => setMessage(null)}
+        duration={1500}
+      />
       {showConfirm && (
-        <ConfirmModal cartItems={cartItems} onClose={() => setShowConfirm(false)} onConfirm={confirmPurchase} />
+        <ConfirmModal
+          cartItems={cartItems}
+          onClose={() => setShowConfirm(false)}
+          onConfirm={confirmPurchase}
+        />
       )}
     </div>
   );
+
 }

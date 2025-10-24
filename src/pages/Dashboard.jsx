@@ -19,7 +19,7 @@ export default function Dashboard() {
       {/* Main content */}
       <main className="flex-1 overflow-y-auto">
           <ContentTitle Title={title} />
-        <div className="max-w-8xl mx-auto max-h-[80vh] p-6">
+        <div className="max-w-8xl mx-auto max-h-[80vh]">
           <Outlet />
         </div>
       </main>

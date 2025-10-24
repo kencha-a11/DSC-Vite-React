@@ -5,7 +5,6 @@ import UserLogProfileCard from "../accounts/UserLogProfileCard";
 
 export default function AccountsContent() {
   const { data, isLoading, isError, error } = useUsersData();
-  console.log("AccountsContent - fetched users data:", data);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
 
@@ -30,7 +29,7 @@ return (
 
       {/* Right - User Profile Logs */}
       {/* ADDED: overflow-y-auto to enable vertical scrolling for the profile/logs */}
-      <div className="w-96 flex-shrink-0 overflow-y-auto"> 
+      <div className="w-96 shrink-0 overflow-y-auto"> 
         <UserLogProfileCard selectedUser={selectedUser} />
       </div>
     </div>

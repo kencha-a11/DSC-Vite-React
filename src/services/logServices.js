@@ -7,7 +7,6 @@ import api from "../api/axios";
  */
 export async function getTimeLogs(params = {}) {
   const response = await api.get("/logs/time", { params });
-  console.log("time logs response:", response);
   return response?.data?.data ?? []; // paginate returns {data, links, meta} structure
 }
 
@@ -21,7 +20,6 @@ export async function getSalesLogs(params = {}) {
     const response = await api.get("/logs/sales", { params });
     // Safely return the data array or an empty array if undefined
 
-    console.log('sales logs data:', response?.data?.data);
     return Array.isArray(response?.data?.data) ? response.data.data : [];
   } catch (error) {
     console.error("Failed to fetch sales logs:", error);
@@ -34,6 +32,5 @@ export async function getSalesLogs(params = {}) {
  */
 export async function getInventoryLogs(params = {}) {
   const response = await api.get("/logs/inventory", { params });
-  console.log("inventory logs response:", response);
   return response?.data?.data ?? [];
 }

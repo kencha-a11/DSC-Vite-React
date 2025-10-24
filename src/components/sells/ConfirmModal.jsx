@@ -16,41 +16,49 @@ const ConfirmModal = ({ cartItems = [], onConfirm, onClose, title = "Confirm Pur
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 px-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 flex flex-col">
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col  border-2 border-pink-400" style={{maxHeight: '90vh'}}>
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-gray-200">
+          <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
+        </div>
 
-        <div className="flex-1 overflow-y-auto max-h-64">
+        {/* Items List */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
           {cartItems.map((item) => (
             <div
               key={item.id}
-              className="flex justify-between items-center mb-2 border-b pb-1 text-sm"
+              className="flex justify-between items-center py-3 text-base text-gray-700"
             >
-              <span>
-                {item.product?.name ?? "Unavailable"} x {item.quantity}
+              <span className="font-normal">
+                {item.product?.name ?? "Unavailable"} <span className="mx-2">x</span> {item.quantity}
               </span>
-              <span>{formatPeso((item.product?.price ?? 0) * item.quantity)}</span>
+              <span className="font-medium">{formatPeso((item.product?.price ?? 0) * item.quantity)}</span>
             </div>
           ))}
         </div>
 
-        <div className="flex justify-between mt-4 font-semibold text-gray-800">
-          <span>Total</span>
-          <span>{formatPeso(total)}</span>
-        </div>
+        {/* Total Section */}
+        <div className="px-6 py-5 border-t border-gray-200">
+          <div className="flex justify-between items-center mb-6">
+            <span className="text-lg font-semibold text-gray-900">Total:</span>
+            <span className="text-lg font-bold text-gray-900">{formatPeso(total)}</span>
+          </div>
 
-        <div className="flex justify-end mt-6 space-x-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-          >
-            Confirm
-          </button>
+          {/* Buttons */}
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="px-6 py-2.5 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-6 py-2.5 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition font-medium"
+            >
+              Confirm
+            </button>
+          </div>
         </div>
       </div>
     </div>
