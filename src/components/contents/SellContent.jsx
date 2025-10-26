@@ -4,10 +4,9 @@ import { createSale } from "../../api/sales";
 import { formatPeso } from "../../utils/utils";
 import ProductRow from "../sells/ProductRow";
 import CartItem from "../sells/CartItem";
-import MessageToast from "../sells/MessageToast";
+import MessageToast from "../MessageToast";
 import ConfirmModal from "../sells/ConfirmModal";
 import { useFilteredProducts } from "../../hooks/useFilterProduct";
-import ProductFilter from "../sells/ProductFilter";
 
 export default function SellsContent() {
   const { data: products = [], isLoading, isError, refetch } = useProductsData();

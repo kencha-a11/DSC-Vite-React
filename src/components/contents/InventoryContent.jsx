@@ -1,11 +1,13 @@
-import { useState, useMemo, useRef, useEffect } from "react";
-import { SearchIcon, SettingsIcon, PlusIcon } from "../icons/index";
-import { useProductsData } from "../../hooks/useProductsData";
-import { useCategories } from "../../hooks/useCategories";
 import CreateCategoryModal from "../inventory/CreateCategoryModal";
 import CreateProductModal from "../inventory/CreateProductModal";
 import EditProductModal from "../inventory/EditProductModal";
-import MessageToast from "../sells/MessageToast";
+import RemoveMultipleCategoriesModal from "../inventory/RemoveMultipleCategoriesModal";
+import MessageToast from "../MessageToast";
+import RemoveMultipleProductsModal from "../../components/inventory/RemoveMultipleProductsModal";
+import { useCategories } from "../../hooks/useCategories";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { SearchIcon, SettingsIcon, PlusIcon } from "../icons";
+import { useProductsData } from "../../hooks/useProductsData";
 
 export default function InventoryContent() {
   const {
@@ -23,8 +25,10 @@ export default function InventoryContent() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showCreateCategory, setShowCreateCategory] = useState(false);
   const [showCreateProduct, setShowCreateProduct] = useState(false);
-  const [editProduct, setEditProduct] = useState(null); // New state for editing
+  const [editProduct, setEditProduct] = useState(null);
   const [message, setMessage] = useState(null);
+  const [showRemoveCategory, setShowRemoveCategory] = useState(false);
+  const [showRemoveProducts, setShowRemoveProducts] = useState(false);
 
   const dropdownRef = useRef(null);
 
@@ -51,7 +55,10 @@ export default function InventoryContent() {
     return Array.from(map.values());
   }, [categories]);
 
-  const categoryOptions = useMemo(() => uniqueCategories.map((c) => c.category_name), [uniqueCategories]);
+  const categoryOptions = useMemo(
+    () => uniqueCategories.map((c) => c.category_name),
+    [uniqueCategories]
+  );
 
   const filteredProducts = useMemo(() => {
     const filtered = products.filter((p) => {
@@ -59,10 +66,10 @@ export default function InventoryContent() {
       const matchesCategory = !categoryFilter
         ? true
         : categoryFilter === "Uncategorized"
-        ? !Array.isArray(p.categories) || p.categories.length === 0
-        : Array.isArray(p.categories)
-        ? p.categories.some((c) => c.category_name === categoryFilter)
-        : false;
+          ? !Array.isArray(p.categories) || p.categories.length === 0
+          : Array.isArray(p.categories)
+            ? p.categories.some((c) => c.category_name === categoryFilter)
+            : false;
       const matchesStatus = !statusFilter || getStatus(p) === statusFilter;
       return matchesSearch && matchesCategory && matchesStatus;
     });
@@ -82,7 +89,7 @@ export default function InventoryContent() {
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [dropdownRef]);
+  }, []);
 
   if (isProductsLoading || isCategoriesLoading)
     return <div className="p-6 text-center">Loading...</div>;
@@ -91,13 +98,9 @@ export default function InventoryContent() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-white rounded shadow">
-      {/* Header */}
-      <div className="p-4 border-b flex-shrink-0">
-        <h2 className="text-2xl font-bold text-gray-800">Inventory</h2>
-      </div>
 
       {/* Search + Manage Inventory */}
-      <div className="flex items-center p-4 border-b flex-shrink-0 relative">
+      <div className="flex items-center p-4 border-b shrink-0 relative">
         <div className="flex-1 relative">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
@@ -137,6 +140,24 @@ export default function InventoryContent() {
                 }}
               >
                 + Category
+              </button>
+              <button
+                className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                onClick={() => {
+                  setShowRemoveCategory(true);
+                  setDropdownOpen(false);
+                }}
+              >
+                - Category
+              </button>
+              <button
+                className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                onClick={() => {
+                  setShowRemoveProducts(true);
+                  setDropdownOpen(false);
+                }}
+              >
+                - Products
               </button>
             </div>
           )}
@@ -182,13 +203,14 @@ export default function InventoryContent() {
             <div className="text-right">Actions</div>
           </div>
 
+          {/* Product Rows */}
           <div className="space-y-2 mt-2">
-            {categoryFilter && filteredProducts.length === 0 ? (
+            {filteredProducts.length === 0 ? (
               <div className="text-center text-sm text-gray-500 py-8">
-                No products available in {categoryFilter}
+                {categoryFilter
+                  ? `No products available in ${categoryFilter}`
+                  : "No products found"}
               </div>
-            ) : filteredProducts.length === 0 ? (
-              <div className="text-center text-sm text-gray-500 py-8">No products found</div>
             ) : (
               filteredProducts.map((p) => (
                 <div
@@ -235,6 +257,14 @@ export default function InventoryContent() {
         />
       )}
 
+      {showRemoveCategory && (
+        <RemoveMultipleCategoriesModal
+          products={products}
+          onClose={() => setShowRemoveCategory(false)}
+          setMessage={setMessage}
+        />
+      )}
+
       {showCreateProduct && (
         <CreateProductModal
           categories={categories}
@@ -244,6 +274,14 @@ export default function InventoryContent() {
             setMessage({ type: "success", text: "Product created successfully!" });
             refetchProducts();
           }}
+        />
+      )}
+
+      {showRemoveProducts && (
+        <RemoveMultipleProductsModal
+          products={products}
+          onClose={() => setShowRemoveProducts(false)}
+          setMessage={setMessage}
         />
       )}
 

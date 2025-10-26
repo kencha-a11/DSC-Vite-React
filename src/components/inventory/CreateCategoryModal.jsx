@@ -224,6 +224,7 @@ export default function CreateCategoryModal({ products, onClose, setMessage }) {
           onCancel={() => setShowConfirmation(false)}
           onConfirm={handleConfirmCreate}
           isLoading={isLoading}
+          status="store"
         />
       )}
     </>

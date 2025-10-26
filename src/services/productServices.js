@@ -66,3 +66,8 @@ export async function deleteProduct(id) {
   const response = await api.delete(`/products/${id}`);
   return response.data;
 }
+
+export async function removeMultipleProducts(data) {
+  const response = await api.delete("/products/multiple", { data });
+  return response.data;
+}

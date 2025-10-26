@@ -21,7 +21,7 @@ export default function MessageToast({ message, onClose, duration = 3000 }) {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed top-4 right-4 z-50 animate-slideShake">
       <div
         className={`flex items-center justify-between px-4 py-3 border rounded-lg shadow-md ${colors[type]}`}
       >
@@ -33,6 +33,32 @@ export default function MessageToast({ message, onClose, duration = 3000 }) {
           ×
         </button>
       </div>
+
+      {/* Slide-in + shake animation */}
+      <style>{`
+        @keyframes slideShake {
+          0% {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          50% {
+            transform: translateX(-10%);
+            opacity: 1;
+          }
+          70% {
+            transform: translateX(5%);
+          }
+          90% {
+            transform: translateX(-2%);
+          }
+          100% {
+            transform: translateX(0);
+          }
+        }
+        .animate-slideShake {
+          animation: slideShake 0.5s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 }
