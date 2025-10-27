@@ -1,27 +1,27 @@
 import React from "react";
-import { normalizeCategory, formatPeso } from "../../utils/utils";
+import { normalizeCategory } from "../../utils/normalizedCategory";
+import { formatPeso } from "../../utils/formatPeso";
 
 const ProductRow = ({ product, onAdd, style }) => {
   const stock = product?.stock_quantity ?? product?.stock ?? 0;
   const lowStockThreshold = product?.low_stock_threshold ?? 5;
 
   const handleClick = () => {
-    if (stock > 0) onAdd(product.id);
+    if (stock > 0) onAdd(product); // pass full product instead of just ID
   };
 
   const img =
     product?.images_path?.length > 0
       ? product.images_path.find((img) => img.is_primary)?.image_path ||
-        product.images_path[0].image_path
+      product.images_path[0].image_path
       : product?.image || null;
 
   return (
     <div
       style={style}
       onClick={handleClick}
-      className={`relative flex items-start justify-between p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition duration-150 ease-in-out ${
-        stock <= 0 ? "opacity-50 pointer-events-none" : ""
-      }`}
+      className={`relative flex items-start justify-between p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition duration-150 ease-in-out ${stock <= 0 ? "opacity-50 pointer-events-none" : ""
+        }`}
     >
       {/* Left section: Image + Info */}
       <div className="flex items-start gap-4">
@@ -50,9 +50,8 @@ const ProductRow = ({ product, onAdd, style }) => {
             </p>
           </div>
           <p
-            className={`text-base ${
-              stock <= lowStockThreshold ? "text-red-500" : "text-gray-500"
-            }`}
+            className={`text-base ${stock <= lowStockThreshold ? "text-red-500" : "text-gray-500"
+              }`}
           >
             Stocks : {stock}
           </p>

@@ -1,22 +1,33 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createProduct } from "../../services/productServices";
-import { UploadIcon, MinusIcon, PlusIcon} from "../icons";
+import { UploadIcon, MinusIcon, PlusIcon } from "../icons";
 
-const CreateProductModal = ({ onClose, onSuccess, categories = [] }) => {
+export default function CreateProductModal({ onClose, onSuccess, setMessage, categories = [] }) {
   const [productName, setProductName] = useState("");
   const [price, setPrice] = useState(1);
-  const [selectedCategories, setSelectedCategories] = useState([]);
   const [quantity, setQuantity] = useState(1);
   const [stockThreshold, setStockThreshold] = useState("");
-  const [productImage, setProductImage] = useState(null);
-  const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [open, setOpen] = useState(false);
+  const [file, setFile] = useState(null);
+  const [productImage, setProductImage] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const dropdownRef = useRef(null);
 
-  // 🟢 Handle outside click for category dropdown
+  /** 🟢 Filter out invalid categories on mount */
+  useEffect(() => {
+    const validCategoryIds = categories
+      .filter((c) => c.id > 0)
+      .map((c) => c.id);
+    
+    setSelectedCategories((prev) => 
+      prev.filter((id) => validCategoryIds.includes(id))
+    );
+  }, [categories]);
+
+  /** 🟢 Close dropdown when clicking outside */
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -27,16 +38,19 @@ const CreateProductModal = ({ onClose, onSuccess, categories = [] }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 🟢 Handle category toggle
+  /** 🟢 Handle category toggle */
   const handleCategoryChange = (e) => {
-    const { value, checked } = e.target;
-    const id = Number(value);
+    const id = Number(e.target.value);
+    
+    // Ignore invalid IDs (0 or negative)
+    if (id <= 0) return;
+    
     setSelectedCategories((prev) =>
-      checked ? [...prev, id] : prev.filter((c) => c !== id)
+      e.target.checked ? [...prev, id] : prev.filter((c) => c !== id)
     );
   };
 
-  // 🟢 Handle image selection
+  /** 🟢 Handle image upload preview */
   const handleImageChange = (e) => {
     const selected = e.target.files[0];
     if (selected) {
@@ -45,298 +59,256 @@ const CreateProductModal = ({ onClose, onSuccess, categories = [] }) => {
     }
   };
 
-  // 🟢 Handle product submission
+  /** 🟢 Form submission */
   const handleConfirm = async () => {
-  if (!productName.trim()) {
-    alert("⚠️ Product name is required");
-    return;
-  }
-
-  if (!price || price <= 0) {
-    alert("⚠️ Price must be greater than 0");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const formData = new FormData();
-    formData.append("name", productName);
-    formData.append("price", price);
-    formData.append("stock_quantity", quantity);
-    formData.append("low_stock_threshold", stockThreshold || 0);
-
-    selectedCategories.forEach((id) => formData.append("category_ids[]", id));
-    if (file) formData.append("image_path", file);
-
-    const response = await createProduct(formData);
-
-    // ✅ Support different backend response formats
-    const product =
-      response?.data?.product ||
-      response?.product ||
-      response?.data ||
-      null;
-    console.log("✅ Product created:", product);
-
-    if (response?.status === 201 || product?.id) {
-      alert("✅ Product created successfully!");
-      onSuccess?.();
-      onClose?.();
-    } else {
-      console.warn("Unexpected API response:", response);
-      alert("⚠️ Something went wrong while saving the product.");
+    if (!productName.trim()) {
+      setMessage?.({ type: "error", text: "Product name is required." });
+      return;
     }
-  } catch (err) {
-  console.error("❌ Product creation error:", err);
 
-  // 🟠 Default message
-  let message = "⚠️ Something went wrong while saving product.";
-  const errorData = err?.response?.data;
+    if (price <= 0) {
+      setMessage?.({ type: "error", text: "Price must be greater than 0." });
+      return;
+    }
 
-  // 🟢 Safely extract a readable message
-  if (typeof errorData === "string") {
-    message = errorData;
-  } else if (errorData?.message) {
-    message = errorData.message;
-  } else if (errorData?.errors) {
-    message = Object.values(errorData.errors).flat().join("\n");
-  } else if (err.message) {
-    message = err.message;
-  }
-
-  // 🟢 Ensure message is always a string (prevent React crash)
-  if (typeof message !== "string") {
     try {
-      message = JSON.stringify(message);
-    } catch {
-      message = "⚠️ Unknown error occurred.";
+      setLoading(true);
+      
+      // Filter out any invalid category IDs before sending
+      const validCategoryIds = selectedCategories.filter((id) => id > 0);
+      
+      const formData = new FormData();
+      formData.append("name", productName);
+      formData.append("price", price);
+      formData.append("stock_quantity", quantity);
+      formData.append("low_stock_threshold", stockThreshold || 0);
+      
+      // Only add valid categories
+      validCategoryIds.forEach((id) => formData.append("category_ids[]", id));
+      
+      if (file) formData.append("image_path", file);
+
+      console.log("📤 Sending:", {
+        name: productName,
+        price,
+        stock_quantity: quantity,
+        category_ids: validCategoryIds,
+      });
+
+      const response = await createProduct(formData);
+      const product = response?.data?.product || response?.product || response?.data;
+
+      console.log("✅ Product created:", product);
+
+      if (product?.id) {
+        setMessage?.({ type: "success", text: "Product created successfully!" });
+        onSuccess?.();
+        onClose?.();
+      } else {
+        setMessage?.({ type: "error", text: "Unexpected response from server." });
+      }
+    } catch (err) {
+      console.error("❌ Product creation error:", err);
+      console.error("❌ Response data:", err?.response?.data);
+
+      const errorData = err?.response?.data;
+      let message = "Something went wrong.";
+
+      if (typeof errorData === "string") {
+        message = errorData;
+      } else if (errorData?.errors) {
+        const validationErrors = Object.entries(errorData.errors)
+          .map(([field, msgs]) => `${field}: ${msgs.join(", ")}`)
+          .join(" | ");
+        message = validationErrors;
+      } else if (errorData?.message) {
+        message = errorData.message;
+      }
+
+      setMessage?.({ type: "error", text: message });
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  alert(message);
-} finally {
-  setLoading(false);
-}
-
-};
-
-
-  // 🟢 Main Modal Render
+  /** 🟢 Modal Markup */
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      role="dialog"
-      aria-modal="true"
-    >
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative z-10 max-w-2xl w-full bg-white shadow-xl rounded-lg p-6 max-h-[90vh] overflow-y-auto">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">Add New Product</h1>
 
-      {/* Modal */}
-      <div className="relative z-10 max-w-2xl w-full bg-white shadow-xl rounded-lg p-6 max-h-[90vh] overflow-y-auto scrollbar-thin">
-        <form onSubmit={(e) => e.preventDefault()}>
-          {/* 🟩 Title */}
-          <h1 className="text-3xl font-bold text-gray-800 mb-8">
-            Add New Product
-          </h1>
-
-          {/* 🟩 Image Upload */}
-          <section className="mb-8">
-            <label
-              htmlFor="product-image-upload"
-              className="block w-full h-40 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 relative overflow-hidden"
-            >
-              {productImage ? (
-                <img
-                  src={productImage}
-                  alt="Preview"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                  <UploadIcon />
-                  <span className="text-sm font-medium">+ Add product image</span>
-                </div>
-              )}
-              <input
-                id="product-image-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-            </label>
-          </section>
-
-          {/* 🟩 Product Name */}
-          <section className="mb-8">
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
-              Product Name
-            </label>
-            <input
-              type="text"
-              placeholder="Enter name"
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </section>
-
-          {/* 🟩 Price */}
-          <section className="mb-8">
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
-              Set Price
-            </label>
-            <div className="relative">
-              <span className="absolute left-0 top-0 mt-3 ml-3 text-gray-500">₱</span>
-              <input
-                type="number"
-                placeholder="Enter price"
-                value={price}
-                onChange={(e) => setPrice(Number(e.target.value))}
-                min="1"
-                className="w-full pl-7 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-              />
+        {/* 🟣 Image Upload */}
+        <label
+          htmlFor="product-image-upload"
+          className="block w-full h-40 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 relative overflow-hidden mb-6"
+        >
+          {productImage ? (
+            <img src={productImage} alt="Preview" className="w-full h-full object-cover" />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-gray-500">
+              <UploadIcon />
+              <span className="text-sm font-medium">+ Add product image</span>
             </div>
-          </section>
+          )}
+          <input
+            id="product-image-upload"
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="hidden"
+          />
+        </label>
 
-          {/* 🟩 Category */}
-          <section className="mb-8 relative" ref={dropdownRef}>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">
-              Category
-            </label>
+        {/* 🟣 Product Name */}
+        <div className="mb-6">
+          <label className="text-sm font-medium text-gray-700 mb-1 block">Product Name</label>
+          <input
+            type="text"
+            value={productName}
+            onChange={(e) => setProductName(e.target.value)}
+            placeholder="Enter product name"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+          />
+        </div>
 
+        {/* 🟣 Price */}
+        <div className="mb-6">
+          <label className="text-sm font-medium text-gray-700 mb-1 block">Price</label>
+          <div className="relative">
+            <span className="absolute left-3 top-3 text-gray-500">₱</span>
             <input
-              type="text"
-              placeholder="Search or select category..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onFocus={() => setOpen(true)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(Number(e.target.value))}
+              min="1"
+              className="w-full pl-7 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
             />
+          </div>
+        </div>
 
-            {open && (
-              <div className="absolute left-0 right-0 mt-2 p-3 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto scrollbar-thin z-10">
-                {categories && categories.length > 0 ? (
-                  categories
-                    .filter((cat) =>
-                      cat.category_name
-                        ?.toLowerCase()
-                        .includes(searchTerm.toLowerCase())
-                    )
-                    .map((cat) => (
-                      <label
-                        key={cat.id}
-                        className="flex items-center space-x-2 py-2 px-3 cursor-pointer hover:bg-gray-100 border border-gray-200 rounded-md"
-                      >
-                        <input
-                          type="checkbox"
-                          value={cat.id}
-                          checked={selectedCategories.includes(cat.id)}
-                          onChange={handleCategoryChange}
-                          className="form-checkbox text-indigo-600 rounded"
-                        />
-                        <span>{cat.category_name}</span>
-                      </label>
-                    ))
-                ) : (
-                  <div className="text-gray-500 text-sm text-center py-2">
-                    Empty category
-                  </div>
-                )}
-              </div>
-            )}
+        {/* 🟣 Categories Dropdown */}
+        <div className="mb-6 relative" ref={dropdownRef}>
+          <label className="text-sm font-medium text-gray-700 mb-2 block">Category</label>
+          <input
+            type="text"
+            placeholder="Search or select category..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={() => setOpen(true)}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+          />
 
-            {selectedCategories.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3 max-h-24 overflow-y-auto scrollbar-thin">
-                {selectedCategories.map((cat) => {
-                  const found = categories.find((c) => c.id === cat);
-                  return (
-                    <span
-                      key={cat}
-                      className="inline-flex items-center px-3 py-1 text-sm font-medium bg-indigo-100 text-indigo-800 rounded-full"
+          {open && (
+            <div className="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto z-10">
+              {categories.length > 0 ? (
+                categories
+                  .filter((c) => c.id !== 0 && c.id > 0)
+                  .filter((c) =>
+                    c.category_name.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map((cat) => (
+                    <label
+                      key={cat.id}
+                      className="flex items-center px-3 py-2 hover:bg-gray-100 cursor-pointer"
                     >
-                      {found?.category_name || "Empty Category"}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          {/* 🟩 Quantity and Stock Threshold */}
-          <section className="mb-8 flex gap-8">
-            {/* Quantity */}
-            <div className="flex-1">
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Quantity
-              </label>
-              <div className="flex items-center space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                  className="p-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 w-10 h-10 flex items-center justify-center"
-                >
-                  <MinusIcon />
-                </button>
-
-                <input
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value) || 1)}
-                  className="w-[100%] text-center py-3 border border-gray-300 rounded-lg font-semibold focus:ring-2 focus:ring-blue-500"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => setQuantity((prev) => prev + 1)}
-                  className="p-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 w-10 h-10 flex items-center justify-center"
-                >
-                  <PlusIcon />
-                </button>
-              </div>
+                      <input
+                        type="checkbox"
+                        value={cat.id}
+                        checked={selectedCategories.includes(cat.id)}
+                        onChange={handleCategoryChange}
+                        className="mr-2"
+                      />
+                      {cat.category_name}
+                    </label>
+                  ))
+              ) : (
+                <div className="text-gray-500 text-center py-2">No categories</div>
+              )}
             </div>
+          )}
+        </div>
 
-            {/* Stock Threshold */}
-            <div className="flex-1">
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Set Stock Threshold
-              </label>
+        {/* 🟣 Selected Categories */}
+        {selectedCategories.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            {selectedCategories.map((catId) => {
+              const found = categories.find((c) => c.id === catId);
+              return (
+                <span
+                  key={catId}
+                  className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium"
+                >
+                  {found?.category_name || "Unknown"}
+                </span>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 🟣 Quantity + Threshold */}
+        <div className="flex gap-6 mb-8">
+          {/* Quantity */}
+          <div className="flex-1">
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Quantity</label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                className="p-2 border rounded-lg hover:bg-gray-100"
+              >
+                <MinusIcon />
+              </button>
               <input
                 type="number"
-                placeholder="Enter low stock threshold"
-                value={stockThreshold}
-                onChange={(e) => setStockThreshold(e.target.value)}
-                min="0"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                value={quantity}
+                onChange={(e) => setQuantity(Number(e.target.value) || 1)}
+                className="w-full text-center border rounded-lg py-3 font-semibold"
               />
+              <button
+                type="button"
+                onClick={() => setQuantity((q) => q + 1)}
+                className="p-2 border rounded-lg hover:bg-gray-100"
+              >
+                <PlusIcon />
+              </button>
             </div>
-          </section>
+          </div>
 
-          {/* 🟩 Action Buttons */}
-          <section className="pt-6 border-t border-gray-200 flex justify-between items-center sticky bottom-0 bg-white">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-100"
-            >
-              Cancel
-            </button>
+          {/* Threshold */}
+          <div className="flex-1">
+            <label className="text-sm font-medium text-gray-700 mb-1 block">
+              Low Stock Threshold
+            </label>
+            <input
+              type="number"
+              value={stockThreshold}
+              onChange={(e) => setStockThreshold(e.target.value)}
+              min="0"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+        </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              onClick={handleConfirm}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 shadow-md disabled:opacity-50"
-            >
-              {loading ? "Saving..." : "Confirm"}
-            </button>
-          </section>
-        </form>
+        {/* 🟣 Footer */}
+        <div className="pt-4 border-t flex justify-end gap-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handleConfirm}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {loading ? "Saving..." : "Confirm"}
+          </button>
+        </div>
       </div>
     </div>
   );
-};
-
-export default CreateProductModal;
+}

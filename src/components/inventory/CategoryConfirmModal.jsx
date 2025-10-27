@@ -57,7 +57,7 @@ export default function CategoryConfirmationModal({
           <h2 id="modal-title" className="text-xl font-semibold mb-1">
             {headerText}
           </h2>
-          <p id="modal-desc" className="text-gray-700 font-medium break-words">
+          <p id="modal-desc" className="text-gray-700 font-medium wrap-break-words">
             {categoryName}
           </p>
         </div>

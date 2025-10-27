@@ -1,35 +1,37 @@
 // src/services/productServices.js
 import api from "../api/axios";
+import { extractDataFromResponse } from "../utils/apiHelpers";
 
-/**
- * Fetch products from API and normalize the shape for the frontend.
- */
-export async function getProductsData() {
-  const response = await api.get("/products");
-  const raw = response?.data ?? [];
+export async function getProductsData(
+  page = 1,
+  perPage = 10,
+  search = "",
+  category = null
+) {
+  try {
+    const params = new URLSearchParams({ page, perPage, search });
 
-  return raw.map((p) => {
-    const placeholder = `https://via.placeholder.com/64?text=${encodeURIComponent(
-      (p.name || "P").charAt(0).toUpperCase()
-    )}`;
+    if (category && category !== "All") params.append("category", category); // must be name
 
+    const response = await api.get(`/products?${params.toString()}`);
+
+    return extractDataFromResponse(response);
+  } catch (error) {
+    console.error("Failed to fetch products:", error.response?.data ?? error);
     return {
-      id: p.id,
-      name: p.name ?? p.title ?? "Unnamed product",
-      categories: Array.isArray(p.categories) ? p.categories : [],
-      price: Number(p.price ?? 0),
-      stock_quantity: p.stock_quantity ?? p.stock ?? 0,
-      low_stock_threshold: p.low_stock_threshold ?? 10,
-      status: p.status ?? "stock",
-      image: p.image ?? p.image_url ?? p.photo ?? placeholder,
-      created_at: p.created_at,
-      updated_at: p.updated_at,
+      data: [],
+      current_page: 1,
+      last_page: 1,
+      per_page: perPage,
+      total: 0,
+      hasMore: false,
     };
-  });
+  }
 }
 
+
 /**
- * Fetch categories from API
+ * Fetch categories
  */
 export async function getCategoriesData() {
   const response = await api.get("/categories");
@@ -38,12 +40,18 @@ export async function getCategoriesData() {
 
 /**
  * Create a new product
+ * @param {FormData} formData
  */
 export async function createProduct(formData) {
-  const response = await api.post("/products", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-  return response.data;
+  try {
+    const response = await api.post("/products", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error creating product:", error);
+    throw error;
+  }
 }
 
 /**
@@ -52,10 +60,15 @@ export async function createProduct(formData) {
  * @param {FormData} formData - Updated product data
  */
 export async function updateProduct(id, formData) {
-  const response = await api.post(`/products/${id}?_method=PUT`, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-  return response.data;
+  try {
+    const response = await api.post(`/products/${id}?_method=PUT`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating product:", error);
+    throw error;
+  }
 }
 
 /**
@@ -63,11 +76,25 @@ export async function updateProduct(id, formData) {
  * @param {number} id - Product ID
  */
 export async function deleteProduct(id) {
-  const response = await api.delete(`/products/${id}`);
-  return response.data;
+  try {
+    const response = await api.delete(`/products/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    throw error;
+  }
 }
 
+/**
+ * Delete multiple products
+ * @param {Array<number>} data - Array of product IDs
+ */
 export async function removeMultipleProducts(data) {
-  const response = await api.delete("/products/multiple", { data });
-  return response.data;
+  try {
+    const response = await api.delete("/products/multiple", { data });
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting multiple products:", error);
+    throw error;
+  }
 }

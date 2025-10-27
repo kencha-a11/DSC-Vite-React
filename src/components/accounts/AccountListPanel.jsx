@@ -3,7 +3,7 @@ import { PlusIcon } from "@heroicons/react/24/outline";
 import { getUsersData } from "../../services/userServices";
 import AddUserModal from "./AddUserModal";
 
-export default function AccountListPanel({ onSelectUser }) {
+export default function AccountListPanel({ onSelectUser, onToast }) {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,19 +57,20 @@ export default function AccountListPanel({ onSelectUser }) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl shadow-lg border border-gray-100">
+    <div className="flex flex-col h-full bg-white rounded-xl border border-gray-200">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-gray-200">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <input
           type="text"
           placeholder="Search accounts"
           value={searchTerm}
           onChange={handleSearch}
-          className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+          className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500 transition duration-150 ease-in-out"
         />
+
         <button
           onClick={() => setShowModal(true)}
-          className="ml-4 flex items-center bg-blue-600 text-white px-4 py-3 rounded-lg text-sm font-semibold shadow-md hover:bg-blue-700 transition duration-150 ease-in-out"
+          className="ml-4 flex items-center bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-semibold shadow-md hover:bg-blue-700 transition duration-150 ease-in-out"
         >
           <PlusIcon className="w-5 h-5 mr-2" />
           Add Account
@@ -101,17 +102,18 @@ export default function AccountListPanel({ onSelectUser }) {
                   </div>
                 </div>
                 {/* Green/Red status circle */}
-                <div
-                  className={`text-xs px-3 py-1 font-medium rounded-full ${user.active_status === "active"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-red-100 text-red-700"
-                    }`}
-                />
+                {/* Status circle */}
+                {user.active_status === "active" && (
+                  <div className="text-xs px-3 py-1 font-medium rounded-full bg-green-100 text-green-700">
+                    Active
+                  </div>
+                )}
+
               </div>
             );
           })
         ) : (
-          <div className="text-center py-10 text-gray-500 font-medium">
+          <div className="text-center py-10 text-gray-400">
             No users found
           </div>
         )}
@@ -121,8 +123,11 @@ export default function AccountListPanel({ onSelectUser }) {
         <AddUserModal
           onClose={() => setShowModal(false)}
           onUserAdded={handleUserAdded}
+          onToast={onToast} // ✅ pass it down
         />
       )}
+
+
     </div>
   );
 }

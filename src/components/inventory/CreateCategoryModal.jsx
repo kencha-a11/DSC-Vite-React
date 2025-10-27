@@ -1,24 +1,55 @@
-import { useState, useMemo } from "react";
-import { RemoveIcon } from "../icons/index";
-import { useCreateCategory } from "../../hooks/useCreateCategory";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { RemoveIcon } from "../icons";
+import { createCategory } from "../../services/categoryServices";
+import { useProductsData } from "../../hooks/useProductsData";
 import CategoryConfirmationModal from "../inventory/CategoryConfirmModal";
 
-export default function CreateCategoryModal({ products, onClose, setMessage }) {
+export default function CreateCategoryModal({ onClose, setMessage, onSuccess }) {
   const [categoryName, setCategoryName] = useState("");
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const loaderRef = useRef(null);
 
-  const { mutate, isLoading } = useCreateCategory();
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } =
+    useProductsData({
+      search,
+      category: categoryFilter,
+      perPage: 10,
+    });
 
+  const products = data?.pages?.flatMap((page) => page.data) ?? [];
+
+  // Infinite scroll
+  useEffect(() => {
+    if (!loaderRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 1 }
+    );
+    observer.observe(loaderRef.current);
+    return () => observer.disconnect();
+  }, [loaderRef, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Extract unique existing categories
   const existingCategories = useMemo(() => {
     const cats = products.flatMap((p) =>
-      Array.isArray(p.categories) ? p.categories.map((c) => c.category_name) : []
+      Array.isArray(p.categories)
+        ? p.categories
+            .map((c) => c?.category_name)
+            .filter((name) => typeof name === "string" && name.trim() !== "")
+        : []
     );
     return ["Uncategorized", ...Array.from(new Set(cats))];
   }, [products]);
 
+  // Filtered available products
   const availableProducts = useMemo(() => {
     return products
       .filter((p) => !selectedProducts.find((sp) => sp.id === p.id))
@@ -31,68 +62,81 @@ export default function CreateCategoryModal({ products, onClose, setMessage }) {
           : categoryFilter === "Uncategorized"
           ? !Array.isArray(p.categories) || p.categories.length === 0
           : Array.isArray(p.categories) &&
-            p.categories.some((c) => c.category_name === categoryFilter)
+            p.categories.some((c) => c?.category_name === categoryFilter)
       );
   }, [products, selectedProducts, search, categoryFilter]);
 
-  const handleAddProduct = (product) => setSelectedProducts((prev) => [...prev, product]);
+  // Handlers
+  const handleAddProduct = (product) =>
+    setSelectedProducts((prev) => [...prev, product]);
   const handleRemoveProduct = (id) =>
     setSelectedProducts((prev) => prev.filter((p) => p.id !== id));
   const handleReset = () => setSelectedProducts([]);
 
-  // Handle Confirm in modal
-  const handleConfirmCreate = () => {
-    setShowConfirmation(false); // close confirmation immediately
+  // Confirm and create
+  const handleConfirmCreate = async () => {
+    setShowConfirmation(false);
+    setIsLoading(true);
 
-    mutate(
-      {
+    try {
+      const payload = {
         category_name: categoryName.trim(),
-        products: selectedProducts.map((p) => p.id), // can be empty
-      },
-      {
-        onSuccess: (newCategory) => {
-          setMessage(`Category "${categoryName}" created successfully`);
+        products: selectedProducts.map((p) => p.id),
+      };
 
-          const updatedSelected = selectedProducts.map((p) => {
-            const existing = Array.isArray(p.categories) ? [...p.categories] : [];
-            return {
-              ...p,
-              categories: [...existing, { id: newCategory.id, category_name: categoryName }],
-            };
-          });
-          setSelectedProducts(updatedSelected);
+      console.log("➡️ Sending to backend:", payload);
+      const newCategory = await createCategory(payload);
+      console.log("✅ Response:", newCategory);
 
-          onClose(); // close main modal
-        },
-        onError: (err) => {
-          console.error(err);
-          const responseData = err?.response?.data;
-          if (responseData?.errors) {
-            const messages = Object.values(responseData.errors).flat().join(" • ");
-            setMessage(messages);
-          } else if (responseData?.message) {
-            setMessage(responseData.message);
-          } else {
-            setMessage("Failed to create category");
-          }
-        },
+      // Refetch via parent handler
+      if (typeof onSuccess === "function") {
+        await onSuccess();
       }
-    );
+
+      // Show toast message
+      setMessage({
+        type: "success",
+        text: `✅ Category "${categoryName}" created successfully`,
+      });
+
+      // Reset and close
+      setTimeout(() => {
+        setCategoryName("");
+        setSelectedProducts([]);
+        setSearch("");
+        setCategoryFilter("");
+        onClose();
+      }, 300);
+    } catch (err) {
+      console.error("❌ Error creating category:", err);
+      const res = err?.response?.data;
+      const errorText =
+        res?.errors
+          ? Object.values(res.errors).flat().join(" • ")
+          : res?.message || "Failed to create category";
+
+      setMessage({ type: "error", text: errorText });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Handle Create button click with duplicate check
+  // Validation
   const trimmedName = categoryName.trim();
   const isDuplicate = existingCategories.some(
-    (c) => c.toLowerCase() === trimmedName.toLowerCase()
+    (c) => typeof c === "string" && c.toLowerCase() === trimmedName.toLowerCase()
   );
 
   const handleCreateClick = () => {
     if (!trimmedName) {
-      setMessage("Please enter a category name");
+      setMessage({ type: "warning", text: "⚠️ Please enter a category name" });
       return;
     }
     if (isDuplicate) {
-      setMessage(`Category "${trimmedName}" already exists`);
+      setMessage({
+        type: "warning",
+        text: `⚠️ Category "${trimmedName}" already exists`,
+      });
       return;
     }
     setShowConfirmation(true);
@@ -104,12 +148,10 @@ export default function CreateCategoryModal({ products, onClose, setMessage }) {
     ? "Creating..."
     : "Create";
 
-  // Remove selectedProducts check so empty category is allowed
   const isCreateDisabled = isLoading || !trimmedName || isDuplicate;
 
   return (
     <>
-      {/* Main Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div className="bg-white w-11/12 max-w-6xl h-4/5 rounded shadow-lg flex overflow-hidden">
           {/* Left Panel */}
@@ -134,7 +176,11 @@ export default function CreateCategoryModal({ products, onClose, setMessage }) {
                     className="flex justify-between items-center border rounded px-2 py-1 hover:bg-gray-50"
                   >
                     <div className="flex items-center gap-2">
-                      <img src={p.image} alt={p.name} className="w-8 h-8 rounded object-cover" />
+                      <img
+                        src={p.image}
+                        alt={p.name}
+                        className="w-8 h-8 rounded object-cover"
+                      />
                       <span>{p.name}</span>
                     </div>
                     <button onClick={() => handleRemoveProduct(p.id)}>
@@ -146,10 +192,16 @@ export default function CreateCategoryModal({ products, onClose, setMessage }) {
             </div>
 
             <div className="flex justify-between mt-2">
-              <button onClick={onClose} className="px-4 py-2 border rounded hover:bg-gray-100">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 border rounded hover:bg-gray-100"
+              >
                 Cancel
               </button>
-              <button onClick={handleReset} className="px-4 py-2 border rounded hover:bg-gray-100">
+              <button
+                onClick={handleReset}
+                className="px-4 py-2 border rounded hover:bg-gray-100"
+              >
                 Reset
               </button>
             </div>
@@ -187,16 +239,29 @@ export default function CreateCategoryModal({ products, onClose, setMessage }) {
                   onClick={() => handleAddProduct(p)}
                 >
                   <div className="flex items-center gap-2">
-                    <img src={p.image} alt={p.name} className="w-8 h-8 rounded object-cover" />
+                    <img
+                      src={p.image}
+                      alt={p.name}
+                      className="w-8 h-8 rounded object-cover"
+                    />
                     <span>{p.name}</span>
                   </div>
                   <div>
                     {Array.isArray(p.categories) && p.categories.length > 0
-                      ? p.categories.map((c) => c.category_name).join(", ")
+                      ? p.categories
+                          .map((c) => c?.category_name)
+                          .filter(Boolean)
+                          .join(", ")
                       : "Uncategorized"}
                   </div>
                 </div>
               ))}
+              <div ref={loaderRef} className="h-10" />
+              {isFetchingNextPage && (
+                <div className="text-center py-2 text-gray-500">
+                  Loading more...
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end mt-4">
@@ -216,7 +281,6 @@ export default function CreateCategoryModal({ products, onClose, setMessage }) {
         </div>
       </div>
 
-      {/* Confirmation Modal */}
       {showConfirmation && (
         <CategoryConfirmationModal
           categoryName={categoryName}

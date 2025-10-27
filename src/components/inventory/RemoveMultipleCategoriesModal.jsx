@@ -1,85 +1,99 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { RemoveIcon } from "../icons";
 import { useRemoveCategories } from "../../hooks/useRemoveCategories";
+import { useCategories } from "../../hooks/useCategories";
 import CategoryConfirmationModal from "../inventory/CategoryConfirmModal";
 
-export default function RemoveMultipleCategoriesModal({ products, onClose, setMessage }) {
+export default function RemoveMultipleCategoriesModal({ products = [], onClose, setMessage }) {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [search, setSearch] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
   const { mutate, isLoading } = useRemoveCategories();
 
-  // 🧩 Extract unique categories except "Uncategorized"
-  const existingCategories = useMemo(() => {
-    const allCats = products.flatMap((p) =>
-      Array.isArray(p.categories) ? p.categories.map((c) => c.category_name) : []
-    );
-    return [...new Set(allCats)].filter((c) => c && c !== "Uncategorized");
-  }, [products]);
+  // ✅ Fetch categories directly from API
+  const { data: categoriesData = [], isLoading: loadingCategories } = useCategories();
 
-  // 🔍 Filter categories by search term
-  const filteredCategories = useMemo(
-    () =>
-      existingCategories.filter((c) =>
-        c.toLowerCase().includes(search.toLowerCase())
-      ),
-    [existingCategories, search]
-  );
+  // 🔹 Filter out "All" category and apply search
+  const filteredCategories = useMemo(() => {
+    return categoriesData
+      .filter((c) => c.id !== 0 && c.category_name !== "All")
+      .filter((c) =>
+        c.category_name.toLowerCase().includes(search.toLowerCase())
+      );
+  }, [categoriesData, search]);
 
   const hasSelected = selectedCategories.length > 0;
-  const hasFiltered = filteredCategories.length > 0;
 
-  // ✅ Toggle category
-  const toggleCategory = (cat) => {
+  // 🔹 Toggle category selection by ID
+  const toggleCategory = useCallback((categoryId) => {
     setSelectedCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+      prev.includes(categoryId)
+        ? prev.filter((id) => id !== categoryId)
+        : [...prev, categoryId]
     );
-  };
+  }, []);
 
-  // ✅ Reset handler
-  const handleReset = () => setSelectedCategories([]);
+  // 🔹 Reset selection
+  const handleReset = useCallback(() => setSelectedCategories([]), []);
 
-  // ✅ Find products that will be detached
+  // 🔹 Find products that will be affected
   const productsToDetach = useMemo(() => {
-    if (selectedCategories.length === 0) return [];
-    return products.filter((p) =>
-      Array.isArray(p.categories) &&
-      p.categories.some((c) => selectedCategories.includes(c.category_name))
+    if (!hasSelected) return [];
+    return (Array.isArray(products) ? products : []).filter(
+      (p) =>
+        Array.isArray(p.categories) &&
+        p.categories.some((c) => selectedCategories.includes(c.id))
     );
-  }, [products, selectedCategories]);
+  }, [products, selectedCategories, hasSelected]);
 
-  // ✅ Confirm removal
-  const handleConfirmRemove = () => {
+  // 🔹 Confirm removal
+  const handleConfirmRemove = useCallback(() => {
     setShowConfirmation(false);
+
+    // Get category names for API
+    const categoryNames = categoriesData
+      .filter((c) => selectedCategories.includes(c.id))
+      .map((c) => c.category_name);
+
     mutate(
-      { categories: selectedCategories },
+      { categories: categoryNames },
       {
         onSuccess: () => {
-          setMessage("Categories removed successfully.");
+          setMessage({ type: "success", text: "Categories removed successfully." });
           onClose();
         },
         onError: (err) => {
           console.error(err);
-          setMessage(err?.response?.data?.message || "Failed to remove selected categories.");
+          setMessage({
+            type: "error",
+            text: err?.response?.data?.message || "Failed to remove selected categories.",
+          });
         },
       }
     );
-  };
+  }, [mutate, selectedCategories, categoriesData, onClose, setMessage]);
 
-  // ✅ Trigger confirmation modal
-  const handleRemoveClick = () => {
+  // 🔹 Trigger confirmation modal
+  const handleRemoveClick = useCallback(() => {
     if (!hasSelected) {
-      setMessage("Please select at least one category to remove.");
+      setMessage({ type: "error", text: "Please select at least one category to remove." });
       return;
     }
     setShowConfirmation(true);
-  };
+  }, [hasSelected, setMessage]);
 
   const removeButtonText = isLoading
     ? "Removing..."
     : hasSelected
-    ? "Remove Selected"
-    : "Select Categories";
+      ? "Remove Selected"
+      : "Select Categories";
+
+  // Get selected category names for display
+  const selectedCategoryNames = useMemo(() => {
+    return categoriesData
+      .filter((c) => selectedCategories.includes(c.id))
+      .map((c) => c.category_name);
+  }, [categoriesData, selectedCategories]);
 
   return (
     <>
@@ -99,20 +113,21 @@ export default function RemoveMultipleCategoriesModal({ products, onClose, setMe
             />
 
             <div className="flex-1 overflow-auto space-y-2">
-              {!hasFiltered ? (
+              {loadingCategories ? (
+                <p className="text-gray-500 text-center py-4">Loading categories...</p>
+              ) : filteredCategories.length === 0 ? (
                 <p className="text-gray-500 text-center py-4">No categories found</p>
               ) : (
                 filteredCategories.map((cat) => {
-                  const isSelected = selectedCategories.includes(cat);
+                  const isSelected = selectedCategories.includes(cat.id);
                   return (
                     <div
-                      key={cat}
-                      onClick={() => toggleCategory(cat)}
-                      className={`flex justify-between items-center border rounded px-3 py-2 cursor-pointer transition-colors ${
-                        isSelected ? "bg-pink-50 border-pink-400" : "hover:bg-gray-50"
-                      }`}
+                      key={cat.id}
+                      onClick={() => toggleCategory(cat.id)}
+                      className={`flex justify-between items-center border rounded px-3 py-2 cursor-pointer transition-colors ${isSelected ? "bg-pink-50 border-pink-400" : "hover:bg-gray-50"
+                        }`}
                     >
-                      <span>{cat}</span>
+                      <span>{cat.category_name}</span>
                       {isSelected && <RemoveIcon className="w-4 h-4 text-pink-600" />}
                     </div>
                   );
@@ -134,23 +149,24 @@ export default function RemoveMultipleCategoriesModal({ products, onClose, setMe
           <div className="flex-1 flex flex-col justify-between p-4">
             <div className="flex-1 overflow-auto">
               <h3 className="font-semibold mb-2">Selected Categories</h3>
-
-              {!hasSelected ? (
-                <p className="text-gray-500 text-center py-4">No categories selected</p>
-              ) : (
+              {hasSelected ? (
                 <div className="space-y-2">
-                  {selectedCategories.map((cat) => (
-                    <div
-                      key={cat}
-                      className="flex justify-between items-center border rounded px-2 py-1"
-                    >
-                      <span>{cat}</span>
-                      <button onClick={() => toggleCategory(cat)}>
-                        <RemoveIcon className="w-4 h-4 text-red-500" />
-                      </button>
-                    </div>
-                  ))}
+                  {categoriesData
+                    .filter((c) => selectedCategories.includes(c.id))
+                    .map((cat) => (
+                      <div
+                        key={cat.id}
+                        className="flex justify-between items-center border rounded px-2 py-1"
+                      >
+                        <span>{cat.category_name}</span>
+                        <button onClick={() => toggleCategory(cat.id)}>
+                          <RemoveIcon className="w-4 h-4 text-red-500" />
+                        </button>
+                      </div>
+                    ))}
                 </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">No categories selected</p>
               )}
             </div>
 
@@ -158,11 +174,10 @@ export default function RemoveMultipleCategoriesModal({ products, onClose, setMe
               <button
                 onClick={handleRemoveClick}
                 disabled={!hasSelected || isLoading}
-                className={`px-4 py-2 rounded text-white transition ${
-                  !hasSelected || isLoading
+                className={`px-4 py-2 rounded text-white transition ${!hasSelected || isLoading
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-pink-600 hover:bg-pink-700"
-                }`}
+                  }`}
               >
                 {removeButtonText}
               </button>
@@ -174,7 +189,7 @@ export default function RemoveMultipleCategoriesModal({ products, onClose, setMe
       {/* Confirmation Modal */}
       {showConfirmation && (
         <CategoryConfirmationModal
-          categoryName={selectedCategories.join(", ")}
+          categoryName={selectedCategoryNames.join(", ")}
           products={productsToDetach}
           onCancel={() => setShowConfirmation(false)}
           onConfirm={handleConfirmRemove}

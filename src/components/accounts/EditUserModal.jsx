@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import api from "../../api/axios";
 
-export default function EditUserModal({ user, onClose, onUserUpdated }) {
+export default function EditUserModal({ user, onClose, onUserUpdated, onToast }) {
   const [formData, setFormData] = useState({
     first_name: user.first_name || "",
     last_name: user.last_name || "",
     email: user.email || "",
     password: "",
-    role: user.role || "",
+    role: user.role || "user",
     account_status: user.account_status || "activated",
     phone_number: user.phone_number || "",
   });
@@ -25,24 +25,29 @@ export default function EditUserModal({ user, onClose, onUserUpdated }) {
       setLoading(true);
       const response = await api.put(`/users/${user.id}`, formData);
       onUserUpdated(response.data);
+
+      // ✅ show success toast
+      onToast?.({ type: "success", text: "User updated successfully!" });
+
+
       onClose();
     } catch (error) {
       console.error("Error updating user:", error);
-      alert("Failed to update user.");
+      // ✅ show error toast
+      onToast?.({ type: "error", text: "Failed to update user." });
     } finally {
       setLoading(false);
     }
   };
 
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-      <div className="bg-white rounded-xl w-[480px] shadow-lg">
+      <div className="bg-white rounded-xl w-[480px] shadow-lg border-2 border-purple-600">
         <form onSubmit={handleSubmit} className="p-6">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">
-            Edit User Profile
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Edit User Profile</h2>
 
-          {/* Name Fields */}
+          {/* Two-column layout for names */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700">First Name</label>
@@ -52,7 +57,7 @@ export default function EditUserModal({ user, onClose, onUserUpdated }) {
                 value={formData.first_name}
                 onChange={handleChange}
                 placeholder="Enter first name"
-                className="w-full border rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-200"
+                className="w-full border border-purple-600 rounded-md px-3 py-2 mt-1 focus:ring-2 focus:ring-purple-200"
                 required
               />
             </div>
@@ -64,13 +69,13 @@ export default function EditUserModal({ user, onClose, onUserUpdated }) {
                 value={formData.last_name}
                 onChange={handleChange}
                 placeholder="Enter last name"
-                className="w-full border rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-200"
+                className="w-full border border-purple-600 rounded-md px-3 py-2 mt-1 focus:ring-2 focus:ring-purple-200"
                 required
               />
             </div>
           </div>
 
-          {/* Other Fields */}
+          {/* Other fields */}
           <div className="space-y-4 mt-4">
             <div>
               <label className="text-sm font-medium text-gray-700">Email</label>
@@ -80,7 +85,7 @@ export default function EditUserModal({ user, onClose, onUserUpdated }) {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="Enter email"
-                className="w-full border rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-200"
+                className="w-full border border-purple-600 rounded-md px-3 py-2 mt-1 focus:ring-2 focus:ring-purple-200"
                 required
               />
             </div>
@@ -95,7 +100,7 @@ export default function EditUserModal({ user, onClose, onUserUpdated }) {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Enter new password"
-                className="w-full border rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-200"
+                className="w-full border border-purple-600 rounded-md px-3 py-2 mt-1 focus:ring-2 focus:ring-purple-200"
               />
             </div>
 
@@ -105,10 +110,11 @@ export default function EditUserModal({ user, onClose, onUserUpdated }) {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="w-full border rounded-lg px-3 py-2 mt-1 bg-white focus:ring-2 focus:ring-indigo-200"
+                className="w-full border border-purple-600 rounded-md px-3 py-2 mt-1 bg-white focus:ring-2 focus:ring-purple-200"
                 required
               >
                 <option value="user">User</option>
+                <option value="manager">Manager</option>
               </select>
             </div>
 
@@ -118,7 +124,7 @@ export default function EditUserModal({ user, onClose, onUserUpdated }) {
                 name="account_status"
                 value={formData.account_status}
                 onChange={handleChange}
-                className="w-full border rounded-lg px-3 py-2 mt-1 bg-white focus:ring-2 focus:ring-indigo-200"
+                className="w-full border border-purple-600 rounded-md px-3 py-2 mt-1 bg-white focus:ring-2 focus:ring-purple-200"
               >
                 <option value="activated">Activated</option>
                 <option value="deactivated">Deactivated</option>
@@ -133,24 +139,24 @@ export default function EditUserModal({ user, onClose, onUserUpdated }) {
                 value={formData.phone_number}
                 onChange={handleChange}
                 placeholder="Enter phone number"
-                className="w-full border rounded-lg px-3 py-2 mt-1 focus:ring-2 focus:ring-indigo-200"
+                className="w-full border border-purple-600 rounded-md px-3 py-2 mt-1 focus:ring-2 focus:ring-purple-200"
               />
             </div>
           </div>
 
-          {/* Footer */}
+          {/* Footer buttons */}
           <div className="flex justify-between border-t pt-4 mt-6">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100"
+              className="px-4 py-2 border rounded-md text-gray-500 hover:bg-gray-100"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+              className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
             >
               {loading ? "Saving..." : "Update"}
             </button>

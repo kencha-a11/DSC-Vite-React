@@ -1,5 +1,4 @@
 import api from "../api/axios";
-
 /**
  * Fetch all categories
  */
@@ -13,9 +12,12 @@ export async function getCategories() {
  * @param {{ category_name: string, products: number[] }} data
  */
 export async function createCategory(data) {
+  console.log("Sending to backend:", data);
   const response = await api.post("/categories", data);
+  console.log("Response:", response);
   return response.data;
 }
+
 
 /**
  * Remove multiple categories by name

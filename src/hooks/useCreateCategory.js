@@ -1,13 +1,16 @@
+// src/hooks/useCreateCategory.js
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createCategory } from "../services/categoryServices";
+import { createCategory as createCategoryService } from "../services/categoryServices";
 
 export function useCreateCategory() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createCategory,
+    mutationFn: async (data) => {
+      return await createCategoryService(data);
+    },
+    retry: false, // important: prevents multiple retries
     onSuccess: () => {
-      // Invalidate the products or categories query so the UI refreshes
       queryClient.invalidateQueries(["categories"]);
       queryClient.invalidateQueries(["products"]);
     },

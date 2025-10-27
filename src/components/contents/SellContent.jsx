@@ -1,159 +1,212 @@
-import React, { useState, useCallback, useMemo } from "react";
-import { useProductsData } from "../../hooks/useProductsData";
-import { createSale } from "../../api/sales";
-import { formatPeso } from "../../utils/utils";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { getProductsData, getCategoriesData } from "../../services/productServices";
+import { createTransaction } from "../../services/saleServices";
+import { formatPeso } from "../../utils/formatPeso";
 import ProductRow from "../sells/ProductRow";
 import CartItem from "../sells/CartItem";
-import MessageToast from "../MessageToast";
+import MessageToast from "../../components/MessageToast";
 import ConfirmModal from "../sells/ConfirmModal";
-import { useFilteredProducts } from "../../hooks/useFilterProduct";
 
+// ---------- Hooks ----------
+function useDebounce(value, delay = 400) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
+
+function useInfiniteScroll(ref, callback, hasMore, isLoading) {
+  useEffect(() => {
+    if (!ref.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && hasMore && !isLoading) callback();
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [ref, callback, hasMore, isLoading]);
+}
+
+// ---------- Component ----------
 export default function SellsContent() {
-  const { data: products = [], isLoading, isError, refetch } = useProductsData();
+  const [products, setProducts] = useState([]);
   const [cartItems, setCartItems] = useState([]);
+  const [categories, setCategories] = useState([{ id: 0, category_name: "All" }]);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchInput, setSearchInput] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const {
-    searchInput,
-    setSearchInput,
-    selectedCategory,
-    setSelectedCategory,
-    categories,
-    filteredProducts,
-  } = useFilteredProducts(products);
+  const loaderRef = useRef();
+  const debouncedSearch = useDebounce(searchInput, 400);
 
-  const productsById = useMemo(() => Object.fromEntries(products.map((p) => [p.id, p])), [products]);
-  const stockById = useMemo(
-    () => Object.fromEntries(products.map((p) => [p.id, Number(p.stock_quantity ?? p.stock ?? 0)])),
-    [products]
-  );
-  const getStockFor = useCallback((id) => stockById[id] ?? 0, [stockById]);
 
-  const updateCartItem = useCallback(
-    (id, quantity) => {
-      setCartItems((prev) => {
-        const stock = getStockFor(id);
-        if (quantity <= 0) return prev.filter((it) => it.id !== id);
-        const qty = Math.min(quantity, stock);
-        return prev.map((it) => (it.id === id ? { ...it, quantity: qty } : it));
-      });
+  // ---------- Load categories ----------
+  useEffect(() => {
+    getCategoriesData()
+      .then((cats) => setCategories([{ id: 0, category_name: "All" }, ...cats]))
+      .catch(() => setMessage({ type: "error", text: "Failed to load categories" }));
+  }, []);
+
+  // ---------- Fetch products ----------
+  const fetchProducts = useCallback(
+    async (pageToFetch = 1) => {
+      setIsLoading(true);
+      try {
+        const res = await getProductsData(pageToFetch, 10, debouncedSearch, selectedCategory);
+        const { data, hasMore } = res;
+        setProducts((prev) => (pageToFetch === 1 ? data : [...prev, ...data]));
+        setHasMore(hasMore);
+      } catch (err) {
+        console.error(err);
+        setMessage({ type: "error", text: "Failed to load products" });
+      } finally {
+        setIsLoading(false);
+      }
     },
-    [getStockFor]
+    [debouncedSearch, selectedCategory]
   );
 
-  const handleAddToCartFromList = useCallback(
-    (productId) => {
-      const product = productsById[productId];
-      if (!product) return setMessage({ type: "error", text: "Product not available" });
+  useEffect(() => {
+    fetchProducts(page);
+  }, [page, fetchProducts]);
 
-      const stock = getStockFor(productId);
-      if (stock <= 0) return setMessage({ type: "error", text: "Out of stock" });
+  useEffect(() => {
+    setPage(1);
+    setHasMore(true);
+  }, [debouncedSearch, selectedCategory]);
 
-      setCartItems((prev) => {
-        const existing = prev.find((it) => it.id === productId);
-        if (existing) {
-          if (existing.quantity >= stock) {
-            setMessage({ type: "info", text: "Stock limit reached" });
-            return prev;
-          }
-          return prev.map((it) => (it.id === productId ? { ...it, quantity: it.quantity + 1, product } : it));
+  useInfiniteScroll(loaderRef, () => {
+    if (hasMore && !isLoading) setPage((prev) => prev + 1);
+  }, hasMore, isLoading);
+
+  // ---------- Cart operations ----------
+  const handleAddToCartFromList = useCallback((product) => {
+    setCartItems((prev) => {
+      const existing = prev.find((it) => it.id === product.id);
+      if (existing) {
+        if (existing.quantity + 1 > (product.stock_quantity ?? 0)) {
+          setMessage({ type: "info", text: "Stock limit reached" });
+          return prev;
         }
-        return [...prev, { id: productId, quantity: 1, product }];
-      });
-    },
-    [productsById, getStockFor]
+        return prev.map((it) => it.id === product.id ? { ...it, quantity: it.quantity + 1 } : it);
+      }
+      return [...prev, { id: product.id, quantity: 1, product }];
+    });
+  }, []);
+
+  const updateCartItem = useCallback((id, quantity) => {
+    setCartItems((prev) => prev.map((it) => (it.id === id ? { ...it, quantity } : it)));
+  }, []);
+
+  const getStockFor = useCallback(
+    (id) => products.find((p) => p.id === id)?.stock_quantity ?? 0,
+    [products]
   );
 
   const total = useMemo(
-    () => cartItems.reduce((sum, it) => sum + (Number(productsById[it.id]?.price ?? 0) * it.quantity), 0),
-    [cartItems, productsById]
+    () => cartItems.reduce((sum, it) => sum + (Number(it.product.price ?? 0) * it.quantity), 0),
+    [cartItems]
   );
 
+  // ---------- Transaction ----------
   const handleCompletePurchase = useCallback(() => {
-    if (!cartItems.length) {
-      setMessage({ type: "info", text: "Cart is empty" });
-      return;
-    }
+    if (!cartItems.length) return setMessage({ type: "info", text: "Cart is empty" });
     setShowConfirm(true);
   }, [cartItems]);
 
-  const confirmPurchase = useCallback(async () => {
+  const confirmTransaction = useCallback(async () => {
+    if (!cartItems.length) return;
     setShowConfirm(false);
     setIsProcessing(true);
+
     try {
-      // 1️⃣ Complete sale in backend
-      await createSale({ items: cartItems.map((it) => ({ product_id: it.id, quantity: it.quantity })), total_amount: total });
+      const payload = {
+        items: cartItems.map((item) => ({
+          product_id: item.id,
+          quantity: item.quantity,
+          snapshot_name: item.product.name,
+          snapshot_price: item.product.price,
+        })),
+        total_amount: total,
+      };
 
-      // 2️⃣ Clear cart and show success message
-      setCartItems([]);
-      setMessage({ type: "success", text: "Purchase completed" });
+      const res = await createTransaction(payload);
 
-      // 3️⃣ Refetch products to update stock in frontend
-      if (refetch) await refetch();
+      if (res?.sale) {
+        // Sync local stock
+        setProducts((prev) =>
+          prev.map((p) => {
+            const purchased = cartItems.find((item) => item.id === p.id);
+            return purchased ? { ...p, stock_quantity: (p.stock_quantity ?? 0) - purchased.quantity } : p;
+          })
+        );
+        setCartItems([]);
+        setMessage({ type: "success", text: "Transaction successful" });
+
+        // Reset page to reload products
+        setPage(1);
+        setHasMore(true);
+      } else {
+        setMessage({ type: "error", text: res?.message || "Transaction failed" });
+      }
     } catch (err) {
-      console.error("Purchase failed:", err);
-      setMessage({ type: "error", text: "Failed to complete purchase" });
+      const msg = err.response?.data?.message || "Transaction failed. Try again.";
+      setMessage({ type: "error", text: msg });
     } finally {
       setIsProcessing(false);
     }
-  }, [cartItems, total, refetch]);
+  }, [cartItems, total]);
 
-  if (isLoading) return <div className="p-6 text-center">Loading products...</div>;
-  if (isError) return <div className="p-6 text-center text-red-500">Failed to load products.</div>;
-
+  // ---------- Render ----------
   return (
     <div className="flex flex-col md:flex-row h-[91vh]">
-      {/* Left Section: Product List */}
+      {/* Products List */}
       <div className="flex-1 bg-white border border-gray-200 rounded-xl flex flex-col overflow-hidden mt-4 mx-4">
-        {/* Search + Filter */}
         <div className="p-4 border-b border-gray-200 flex gap-3">
           <input
             type="text"
             placeholder="Search items"
-            className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
+            className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500"
           />
-
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-40 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-700
-             focus:border-pink-500 focus:ring-1 focus:ring-pink-500
-             focus:outline-none transition-colors duration-200"
+            className="w-40 border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:outline-none transition-colors duration-200"
           >
             {categories.map((c) => (
-              <option key={c} value={c} className="truncate">
-                {c}
-              </option>
+              <option key={c.id} value={c.category_name}>{c.category_name}</option>
             ))}
           </select>
-
-
-
-
-
         </div>
 
-        {/* Products List */}
         <div className="flex-1 overflow-y-auto px-4 py-2">
-          {filteredProducts.length === 0 ? (
-            <div className="text-center text-gray-500 text-sm py-8">
-              No products found
-            </div>
+          {products.length === 0 && !isLoading ? (
+            <div className="text-center text-gray-500 text-sm py-8">No products found</div>
           ) : (
             <div className="space-y-3">
-              {filteredProducts.map((p) => (
-                <ProductRow key={p.id} product={p} onAdd={handleAddToCartFromList} />
+              {products.map((p) => (
+                <ProductRow key={p.id} product={p} onAdd={handleAddToCartFromList} disabled={getStockFor(p.id) === 0} />
               ))}
             </div>
           )}
+          {isLoading && <div className="text-center text-gray-400 py-3">Loading more...</div>}
+          <div ref={loaderRef} className="h-20"></div>
         </div>
       </div>
 
-      {/* Right Section: Transaction Summary */}
+      {/* Cart Summary */}
       <div className="w-full md:w-1/3 bg-white border border-gray-200 flex flex-col overflow-hidden">
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <h3 className="font-semibold text-gray-800">Transaction summary</h3>
@@ -166,13 +219,9 @@ export default function SellsContent() {
             </button>
           )}
         </div>
-
-        {/* Cart Items */}
         <div className="flex-1 overflow-y-auto p-4">
           {cartItems.length === 0 ? (
-            <div className="text-center text-sm text-gray-500 py-8">
-              No items selected
-            </div>
+            <div className="text-center text-sm text-gray-500 py-8">No items selected</div>
           ) : (
             <div className="space-y-4">
               {cartItems.map((it) => (
@@ -182,16 +231,12 @@ export default function SellsContent() {
                   product={it.product}
                   stock={getStockFor(it.id)}
                   onUpdateQuantity={updateCartItem}
-                  onLimit={() =>
-                    setMessage({ type: "info", text: "Stock limit reached" })
-                  }
+                  onLimit={() => setMessage({ type: "info", text: "Stock limit reached" })}
                 />
               ))}
             </div>
           )}
         </div>
-
-        {/* Total + Confirm */}
         <div className="border-t border-gray-200 p-4">
           <div className="flex justify-between items-center mb-3">
             <span className="text-sm font-medium">Total</span>
@@ -200,34 +245,25 @@ export default function SellsContent() {
           <button
             onClick={handleCompletePurchase}
             disabled={cartItems.length === 0 || isProcessing}
-            className={`w-full py-2 rounded-md text-white text-sm font-medium transition-colors ${cartItems.length === 0 || isProcessing
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-pink-500 hover:bg-pink-600"
-              }`}
+            className={`w-full py-2 rounded-md text-white text-sm font-medium transition-colors ${
+              cartItems.length === 0 || isProcessing
+                ? "bg-gray-300 cursor-not-allowed"
+                : "bg-pink-500 hover:bg-pink-600"
+            }`}
           >
-            {cartItems.length === 0
-              ? "Empty Cart"
-              : isProcessing
-                ? "Processing..."
-                : "Confirm purchase"}
+            {cartItems.length === 0 ? "Empty Cart" : isProcessing ? "Processing..." : "Confirm purchase"}
           </button>
         </div>
       </div>
 
-      {/* Toast + Modal */}
-      <MessageToast
-        message={message}
-        onClose={() => setMessage(null)}
-        duration={1500}
-      />
+      <MessageToast message={message} onClose={() => setMessage(null)} duration={1500} />
       {showConfirm && (
         <ConfirmModal
           cartItems={cartItems}
           onClose={() => setShowConfirm(false)}
-          onConfirm={confirmPurchase}
+          onConfirm={confirmTransaction}
         />
       )}
     </div>
   );
-
 }

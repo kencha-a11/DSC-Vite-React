@@ -15,12 +15,10 @@ export const getCsrfCookie = async () => {
     
     if (csrfToken) {
     } else {
-      console.warn("CSRF token not found in cookies after fetching");
     }
     
     return response;
   } catch (error) {
-    console.error("Failed to fetch CSRF cookie:", error);
     throw error;
   }
 };
@@ -36,13 +34,7 @@ export const login = async (credentials) => {
     const response = await api.post("/login", credentials);
     return response;
   } catch (error) {
-    console.error("Login API call failed:", {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      headers: error.response?.headers,
-      cookies: document.cookie
-    });
+    
     throw error;
   }
 };
@@ -55,7 +47,6 @@ export const logout = async () => {
     const response = await api.post("/logout");
     return response;
   } catch (error) {
-    console.error("Logout failed:", error);
     throw error;
   }
 };
@@ -64,14 +55,9 @@ export const logout = async () => {
 export const getUser = async () => {
   try {
     const { data } = await api.get("/user");
-    console.log("Fetched user:", data);
     return data;
   } catch (error) {
-    console.error("Failed to fetch user:", {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data
-    });
+    
     throw error;
   }
 };

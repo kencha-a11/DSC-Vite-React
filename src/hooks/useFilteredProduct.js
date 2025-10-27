@@ -1,6 +1,6 @@
 // src/hooks/useFilteredProducts.js
 import { useMemo, useState, useEffect } from "react";
-import { normalizeCategory } from "../utils/utils";
+import { normalizeCategory } from "../../src/utils/normalizedCategory";
 
 export function useFilteredProducts(products) {
   const [searchInput, setSearchInput] = useState("");
@@ -15,11 +15,12 @@ export function useFilteredProducts(products) {
 
   // Compute unique categories
   const categories = useMemo(() => {
-    const cats = products
-      .map((p) => (normalizeCategory(p) || "No Category").trim())
-      .filter(Boolean);
-    return ["All", ...Array.from(new Set(cats))];
-  }, [products]);
+  const cats = products
+    .flatMap((p) => p.categories?.map((c) => c.category_name) ?? [])
+    .filter(Boolean);
+  return ["All", ...Array.from(new Set(cats))];
+}, [products]);
+
 
   // Filter products
   const filteredProducts = useMemo(() => {

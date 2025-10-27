@@ -1,71 +1,82 @@
 // src/api/axios.js
 import axios from "axios";
 
-// Axios instance for authenticated API requests (uses /api prefix)
-export const api = axios.create({
-  baseURL: "http://localhost:8000/api",
-  withCredentials: true, // send cookies with requests (important for Laravel Sanctum)
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest', // Laravel requires this for AJAX requests
-  },
-});
-
-// Separate Axios instance for CSRF-related requests (no /api prefix)
+// ------------------------------
+// CSRF Axios Instance (no /api prefix)
+// ------------------------------
 export const csrfApi = axios.create({
   baseURL: "http://localhost:8000",
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    "X-Requested-With": "XMLHttpRequest",
   },
 });
 
-// Utility function: extract CSRF token from browser cookies
+// ------------------------------
+// Authenticated API Axios Instance (/api prefix)
+// ------------------------------
+export const api = axios.create({
+  baseURL: "http://localhost:8000/api",
+  withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    "X-Requested-With": "XMLHttpRequest",
+  },
+});
+
+// ------------------------------
+// Utility: get CSRF token from cookies
+// ------------------------------
 const getCsrfTokenFromCookie = () => {
-  const cookies = document.cookie.split(';');
+  const cookies = document.cookie.split(";");
   for (let cookie of cookies) {
-    const [name, value] = cookie.trim().split('=');
-    if (name === 'XSRF-TOKEN') {
-      return decodeURIComponent(value); // Laravel encodes the token
-    }
+    const [name, value] = cookie.trim().split("=");
+    if (name === "XSRF-TOKEN") return decodeURIComponent(value);
   }
   return null;
 };
 
-// Add request interceptor: attach CSRF token to outgoing requests
+// ------------------------------
+// Initialize CSRF
+// ------------------------------
+export const initCsrf = async () => {
+  try {
+    await csrfApi.get("/sanctum/csrf-cookie");
+    console.log("CSRF token initialized");
+  } catch (err) {
+    console.error("Failed to initialize CSRF:", err);
+  }
+};
+
+// ------------------------------
+// Request interceptor: attach CSRF token
+// ------------------------------
 api.interceptors.request.use(
   (config) => {
     const csrfToken = getCsrfTokenFromCookie();
-    if (csrfToken) {
-      config.headers['X-XSRF-TOKEN'] = csrfToken;
-    }
+    if (csrfToken) config.headers["X-XSRF-TOKEN"] = csrfToken;
     return config;
   },
-  (error) => {
-    console.error('API Request Error:', error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Add response interceptor: log API responses or errors
+// ------------------------------
+// Response interceptor: retry 419 once
+// ------------------------------
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    console.error('API Response Error:', {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      url: error.config?.url,
-      data: error.response?.data,
-      headers: error.response?.headers,
-    });
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 419 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      await initCsrf(); // fetch new CSRF token
+      return api(originalRequest); // retry original request
+    }
     return Promise.reject(error);
   }
 );
 
-// Export default api instance for backward compatibility
 export default api;

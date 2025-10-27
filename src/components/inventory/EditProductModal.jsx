@@ -1,41 +1,35 @@
 import React, { useState, useEffect, useRef } from "react";
 import { PlusIcon, MinusIcon, UploadIcon } from "../icons";
-
 import { updateProduct, deleteProduct } from "../../services/productServices";
 
-const EditProductModal = ({ product, categories = [], onClose, onSuccess, onDelete }) => {
+const EditProductModal = ({ product, categories = [], onClose, onSuccess, setMessage, onDelete }) => {
   const [productName, setProductName] = useState(product.name || "");
-  const [price, setPrice] = useState(product.price || 1);
+  const [price, setPrice] = useState(Number(product.price) || 1);
   const [selectedCategories, setSelectedCategories] = useState(
     Array.isArray(product.categories) ? product.categories.map((c) => c.id) : []
   );
-  const [quantity, setQuantity] = useState(product.stock_quantity || 1);
-  const [stockThreshold, setStockThreshold] = useState(product.low_stock_threshold || 10);
+  const [quantity, setQuantity] = useState(Number(product.stock_quantity) || 1);
+  const [stockThreshold, setStockThreshold] = useState(Number(product.low_stock_threshold) || 0);
   const [productImage, setProductImage] = useState(product.image || null);
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-
   const dropdownRef = useRef(null);
 
-  // Handle outside click for category dropdown
+  /** Close dropdown on outside click */
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setOpen(false);
-      }
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleCategoryChange = (e) => {
-    const { value, checked } = e.target;
-    const id = Number(value);
-    setSelectedCategories((prev) =>
-      checked ? [...prev, id] : prev.filter((c) => c !== id)
-    );
+    const id = Number(e.target.value);
+    if (id <= 0) return;
+    setSelectedCategories((prev) => (e.target.checked ? [...prev, id] : prev.filter((c) => c !== id)));
   };
 
   const handleImageChange = (e) => {
@@ -46,13 +40,14 @@ const EditProductModal = ({ product, categories = [], onClose, onSuccess, onDele
     }
   };
 
+  /** Save product smoothly */
   const handleSave = async () => {
     if (!productName.trim()) {
-      alert("⚠️ Product name is required");
+      setMessage?.({ type: "error", text: "Product name is required." });
       return;
     }
     if (!price || price <= 0) {
-      alert("⚠️ Price must be greater than 0");
+      setMessage?.({ type: "error", text: "Price must be greater than 0." });
       return;
     }
 
@@ -60,34 +55,44 @@ const EditProductModal = ({ product, categories = [], onClose, onSuccess, onDele
       setLoading(true);
       const formData = new FormData();
       formData.append("name", productName);
-      formData.append("price", price);
-      formData.append("stock_quantity", quantity);
-      formData.append("low_stock_threshold", stockThreshold || 0);
-      selectedCategories.forEach((id) => formData.append("category_ids[]", id));
+      formData.append("price", Number(price));
+      formData.append("stock_quantity", Number(quantity));
+      formData.append("low_stock_threshold", Number(stockThreshold));
+
+      selectedCategories.filter((id) => id > 0)
+        .forEach((id) => formData.append("category_ids[]", Number(id)));
+
       if (file) formData.append("image_path", file);
 
-      const response = await updateProduct(product.id, formData);
-      console.log("✅ Product updated:", response);
-      alert("✅ Product updated successfully!");
+      await updateProduct(product.id, formData);
+
+      setMessage?.({ type: "success", text: "Product updated successfully!" });
+      onClose?.();
       onSuccess?.();
     } catch (err) {
       console.error("❌ Update error:", err);
-      alert("⚠️ Failed to update product.");
+      const errors = err?.response?.data?.errors;
+      const message = errors
+        ? Object.entries(errors).map(([k, v]) => `${k}: ${v.join(", ")}`).join(" | ")
+        : "Failed to update product.";
+      setMessage?.({ type: "error", text: message });
     } finally {
       setLoading(false);
     }
   };
 
+  /** Delete product smoothly */
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this product?")) return;
     try {
       setLoading(true);
       await deleteProduct(product.id);
-      alert("✅ Product deleted successfully!");
+      setMessage?.({ type: "success", text: "Product deleted successfully!" });
+      onClose?.();
       onDelete?.();
     } catch (err) {
       console.error("❌ Delete error:", err);
-      alert("⚠️ Failed to delete product.");
+      setMessage?.({ type: "error", text: "Failed to delete product." });
     } finally {
       setLoading(false);
     }
@@ -151,7 +156,7 @@ const EditProductModal = ({ product, categories = [], onClose, onSuccess, onDele
           </div>
         </section>
 
-        {/* Category Selection */}
+        {/* Categories */}
         <section className="mb-8 relative" ref={dropdownRef}>
           <label className="text-sm font-medium text-gray-700 mb-2 block">Category</label>
           <input
@@ -162,11 +167,11 @@ const EditProductModal = ({ product, categories = [], onClose, onSuccess, onDele
             onFocus={() => setOpen(true)}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
           />
-
           {open && (
             <div className="absolute left-0 right-0 mt-2 p-3 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto scrollbar-thin z-10">
               {categories
                 .filter((cat) => cat.category_name.toLowerCase().includes(searchTerm.toLowerCase()))
+                .filter((c) => c.id > 0)
                 .map((cat) => (
                   <label
                     key={cat.id}
@@ -184,7 +189,6 @@ const EditProductModal = ({ product, categories = [], onClose, onSuccess, onDele
                 ))}
             </div>
           )}
-
           {selectedCategories.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3 max-h-24 overflow-y-auto scrollbar-thin">
               {selectedCategories.map((cat) => {
@@ -202,7 +206,7 @@ const EditProductModal = ({ product, categories = [], onClose, onSuccess, onDele
           )}
         </section>
 
-        {/* Quantity & Stock Threshold */}
+        {/* Quantity & Threshold */}
         <section className="mb-8 flex gap-8">
           <div className="flex-1">
             <label className="text-sm font-medium text-gray-700 mb-1 block">Quantity</label>
@@ -214,15 +218,13 @@ const EditProductModal = ({ product, categories = [], onClose, onSuccess, onDele
               >
                 <MinusIcon />
               </button>
-
               <input
                 type="number"
                 min="1"
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value) || 1)}
-                className="w-[100%] text-center py-3 border border-gray-300 rounded-lg font-semibold focus:ring-2 focus:ring-blue-500"
+                className="w-full text-center py-3 border border-gray-300 rounded-lg font-semibold focus:ring-2 focus:ring-blue-500"
               />
-
               <button
                 type="button"
                 onClick={() => setQuantity((prev) => prev + 1)}
@@ -232,21 +234,19 @@ const EditProductModal = ({ product, categories = [], onClose, onSuccess, onDele
               </button>
             </div>
           </div>
-
           <div className="flex-1">
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Set Stock Threshold</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Low Stock Threshold</label>
             <input
               type="number"
-              placeholder="Enter low stock threshold"
               value={stockThreshold}
-              onChange={(e) => setStockThreshold(e.target.value)}
+              onChange={(e) => setStockThreshold(Number(e.target.value))}
               min="0"
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
         </section>
 
-        {/* Action Buttons */}
+        {/* Footer */}
         <section className="pt-6 border-t border-gray-200 flex justify-between items-center sticky bottom-0 bg-white">
           <button
             type="button"
@@ -255,7 +255,6 @@ const EditProductModal = ({ product, categories = [], onClose, onSuccess, onDele
           >
             Cancel
           </button>
-
           <div className="flex gap-2">
             <button
               type="button"
@@ -265,7 +264,6 @@ const EditProductModal = ({ product, categories = [], onClose, onSuccess, onDele
             >
               Delete
             </button>
-
             <button
               type="button"
               onClick={handleSave}

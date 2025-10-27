@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { formatPeso } from "../../utils/utils";
-import { normalizeCategory } from "../../utils/utils";
+import { normalizeCategory } from "../../utils/normalizedCategory";
+import { formatPeso } from "../../utils/formatPeso";
 
 export default function CartItem({ item, product, stock, onUpdateQuantity, onLimit }) {
   const name = product?.name ?? "Unavailable";

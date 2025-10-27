@@ -21,42 +21,39 @@ export default function MessageToast({ message, onClose, duration = 3000 }) {
   };
 
   return (
-    <div className="fixed top-4 right-4 z-50 animate-slideShake">
+    <div className="fixed top-4 left-1/2 z-50 -translate-x-1/2 animate-slideDownUp">
       <div
-        className={`flex items-center justify-between px-4 py-3 border rounded-lg shadow-md ${colors[type]}`}
+        className={`flex items-center justify-between px-6 py-3 border rounded-lg shadow-md ${colors[type]}`}
       >
         <span>{text}</span>
         <button
           onClick={onClose}
-          className="ml-3 text-gray-600 hover:text-gray-900 font-bold"
+          className="ml-4 text-gray-600 hover:text-gray-900 font-bold"
         >
           ×
         </button>
       </div>
 
-      {/* Slide-in + shake animation */}
+      {/* Slide-down + bounce animation */}
       <style>{`
-        @keyframes slideShake {
+        @keyframes slideDownUp {
           0% {
-            transform: translateX(100%);
+            transform: translateY(-50px);
             opacity: 0;
           }
-          50% {
-            transform: translateX(-10%);
+          60% {
+            transform: translateY(15px);
             opacity: 1;
           }
-          70% {
-            transform: translateX(5%);
-          }
-          90% {
-            transform: translateX(-2%);
+          80% {
+            transform: translateY(-5px);
           }
           100% {
-            transform: translateX(0);
+            transform: translateY(0);
           }
         }
-        .animate-slideShake {
-          animation: slideShake 0.5s ease-out forwards;
+        .animate-slideDownUp {
+          animation: slideDownUp 0.6s ease-out forwards;
         }
       `}</style>
     </div>

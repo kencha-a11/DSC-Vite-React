@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { formatPeso } from "../../utils/utils";
+import { formatPeso } from "../../utils/formatPeso";
 
 const ConfirmModal = ({ cartItems = [], onConfirm, onClose, title = "Confirm Purchase" }) => {
   // Memoize total calculation
