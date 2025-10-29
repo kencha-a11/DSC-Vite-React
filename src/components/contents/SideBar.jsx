@@ -18,7 +18,7 @@ const menuItems = [
   { name: "Sells", to: "/dashboard/sell", Icon: SellIcon },
   { name: "Inventory", to: "/dashboard/inventory", Icon: InventoryIcon },
   { name: "Records", to: "/dashboard/records", Icon: RecordsIcon },
-  { name: "Reports", to: "/dashboard/reports", Icon: ReportsIcon },
+  // { name: "Reports", to: "/dashboard/reports", Icon: ReportsIcon },
 ];
 
 export default function Sidebar() {

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { getProductsData, getCategoriesData } from "../../services/productServices";
 import { createTransaction } from "../../services/saleServices";
 import { formatPeso } from "../../utils/formatPeso";
@@ -6,6 +7,8 @@ import ProductRow from "../sells/ProductRow";
 import CartItem from "../sells/CartItem";
 import MessageToast from "../../components/MessageToast";
 import ConfirmModal from "../sells/ConfirmModal";
+import ClearCartDialogue from "../sells/ClearCartDialogue";
+import LeaveCartItemDialog from "../sells/LeaveCartItemDialog";
 
 // ---------- Hooks ----------
 function useDebounce(value, delay = 400) {
@@ -16,7 +19,6 @@ function useDebounce(value, delay = 400) {
   }, [value, delay]);
   return debounced;
 }
-
 
 function useInfiniteScroll(ref, callback, hasMore, isLoading) {
   useEffect(() => {
@@ -34,6 +36,9 @@ function useInfiniteScroll(ref, callback, hasMore, isLoading) {
 
 // ---------- Component ----------
 export default function SellsContent() {
+  const navigate = useNavigate();
+
+  // --- State ---
   const [products, setProducts] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [categories, setCategories] = useState([{ id: 0, category_name: "All" }]);
@@ -45,19 +50,21 @@ export default function SellsContent() {
   const [message, setMessage] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
+  const [showLeaveCartDialog, setShowLeaveCartDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState(null); // store attempted path
 
   const loaderRef = useRef();
   const debouncedSearch = useDebounce(searchInput, 400);
 
-
-  // ---------- Load categories ----------
+  // --- Load categories ---
   useEffect(() => {
     getCategoriesData()
       .then((cats) => setCategories([{ id: 0, category_name: "All" }, ...cats]))
       .catch(() => setMessage({ type: "error", text: "Failed to load categories" }));
   }, []);
 
-  // ---------- Fetch products ----------
+  // --- Fetch products ---
   const fetchProducts = useCallback(
     async (pageToFetch = 1) => {
       setIsLoading(true);
@@ -81,6 +88,7 @@ export default function SellsContent() {
   }, [page, fetchProducts]);
 
   useEffect(() => {
+    setProducts([]);
     setPage(1);
     setHasMore(true);
   }, [debouncedSearch, selectedCategory]);
@@ -89,7 +97,7 @@ export default function SellsContent() {
     if (hasMore && !isLoading) setPage((prev) => prev + 1);
   }, hasMore, isLoading);
 
-  // ---------- Cart operations ----------
+  // --- Cart operations ---
   const handleAddToCartFromList = useCallback((product) => {
     setCartItems((prev) => {
       const existing = prev.find((it) => it.id === product.id);
@@ -108,17 +116,20 @@ export default function SellsContent() {
     setCartItems((prev) => prev.map((it) => (it.id === id ? { ...it, quantity } : it)));
   }, []);
 
-  const getStockFor = useCallback(
-    (id) => products.find((p) => p.id === id)?.stock_quantity ?? 0,
-    [products]
-  );
+  const productsMap = useMemo(() => {
+    const map = new Map();
+    products.forEach(p => map.set(p.id, p.stock_quantity ?? 0));
+    return map;
+  }, [products]);
+
+  const getStockFor = useCallback((id) => productsMap.get(id) ?? 0, [productsMap]);
 
   const total = useMemo(
     () => cartItems.reduce((sum, it) => sum + (Number(it.product.price ?? 0) * it.quantity), 0),
     [cartItems]
   );
 
-  // ---------- Transaction ----------
+  // --- Transaction ---
   const handleCompletePurchase = useCallback(() => {
     if (!cartItems.length) return setMessage({ type: "info", text: "Cart is empty" });
     setShowConfirm(true);
@@ -143,7 +154,6 @@ export default function SellsContent() {
       const res = await createTransaction(payload);
 
       if (res?.sale) {
-        // Sync local stock
         setProducts((prev) =>
           prev.map((p) => {
             const purchased = cartItems.find((item) => item.id === p.id);
@@ -153,7 +163,6 @@ export default function SellsContent() {
         setCartItems([]);
         setMessage({ type: "success", text: "Transaction successful" });
 
-        // Reset page to reload products
         setPage(1);
         setHasMore(true);
       } else {
@@ -167,7 +176,30 @@ export default function SellsContent() {
     }
   }, [cartItems, total]);
 
-  // ---------- Render ----------
+  // --- Leave page handling (SPA navigation) ---
+  const attemptNavigation = (path) => {
+    if (cartItems.length > 0) {
+      setPendingNavigation(path);
+      setShowLeaveCartDialog(true);
+    } else {
+      navigate(path);
+    }
+  };
+
+  // --- Beforeunload browser warning ---
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (cartItems.length > 0) {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [cartItems]);
+
+  // --- Render ---
   return (
     <div className="flex flex-col md:flex-row h-[91vh]">
       {/* Products List */}
@@ -212,7 +244,7 @@ export default function SellsContent() {
           <h3 className="font-semibold text-gray-800">Transaction summary</h3>
           {cartItems.length > 0 && (
             <button
-              onClick={() => setCartItems([])}
+              onClick={() => setShowClearCartConfirm(true)}
               className="text-xs font-medium hover:text-gray-700 transition border-2 border-gray-200 p-1 px-2 rounded-md bg-gray-100"
             >
               Clear all
@@ -245,23 +277,49 @@ export default function SellsContent() {
           <button
             onClick={handleCompletePurchase}
             disabled={cartItems.length === 0 || isProcessing}
-            className={`w-full py-2 rounded-md text-white text-sm font-medium transition-colors ${
-              cartItems.length === 0 || isProcessing
-                ? "bg-gray-300 cursor-not-allowed"
-                : "bg-pink-500 hover:bg-pink-600"
-            }`}
+            className={`w-full py-2 rounded-md text-white text-sm font-medium transition-colors ${cartItems.length === 0 || isProcessing
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-pink-500 hover:bg-pink-600"
+              }`}
           >
             {cartItems.length === 0 ? "Empty Cart" : isProcessing ? "Processing..." : "Confirm purchase"}
           </button>
         </div>
       </div>
 
+      {/* Toast & Modals */}
       <MessageToast message={message} onClose={() => setMessage(null)} duration={1500} />
       {showConfirm && (
         <ConfirmModal
           cartItems={cartItems}
           onClose={() => setShowConfirm(false)}
           onConfirm={confirmTransaction}
+        />
+      )}
+      {showClearCartConfirm && (
+        <ClearCartDialogue
+          message="Clear Cart?"
+          subMessage="Are you sure you want to remove all items from your cart? This action cannot be undone."
+          onConfirm={() => {
+            setCartItems([]);
+            setShowClearCartConfirm(false);
+          }}
+          onCancel={() => setShowClearCartConfirm(false)}
+        />
+      )}
+      {showLeaveCartDialog && (
+        <LeaveCartItemDialog
+          message="Leave this Page?"
+          subMessage="You have an ongoing transaction. Leaving now will discard all unsaved items."
+          onConfirm={() => {
+            setCartItems([]);
+            setShowLeaveCartDialog(false);
+            if (pendingNavigation) {
+              navigate(pendingNavigation);
+              setPendingNavigation(null);
+            }
+          }}
+          onCancel={() => setShowLeaveCartDialog(false)}
         />
       )}
     </div>
