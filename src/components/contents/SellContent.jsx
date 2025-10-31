@@ -9,36 +9,13 @@ import MessageToast from "../../components/MessageToast";
 import ConfirmModal from "../sells/ConfirmModal";
 import ClearCartDialogue from "../sells/ClearCartDialogue";
 import LeaveCartItemDialog from "../sells/LeaveCartItemDialog";
-
-// ---------- Hooks ----------
-function useDebounce(value, delay = 400) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debounced;
-}
-
-function useInfiniteScroll(ref, callback, hasMore, isLoading) {
-  useEffect(() => {
-    if (!ref.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && hasMore && !isLoading) callback();
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [ref, callback, hasMore, isLoading]);
-}
+import useDebounce from "../../hooks/useDebounce";
+import useInfiniteScroll from "../../hooks/useInfiniteScroll";
 
 // ---------- Component ----------
 export default function SellsContent() {
   const navigate = useNavigate();
 
-  // --- State ---
   const [products, setProducts] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [categories, setCategories] = useState([{ id: 0, category_name: "All" }]);
@@ -52,7 +29,7 @@ export default function SellsContent() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
   const [showLeaveCartDialog, setShowLeaveCartDialog] = useState(false);
-  const [pendingNavigation, setPendingNavigation] = useState(null); // store attempted path
+  const [pendingNavigation, setPendingNavigation] = useState(null);
 
   const loaderRef = useRef();
   const debouncedSearch = useDebounce(searchInput, 400);
@@ -73,8 +50,7 @@ export default function SellsContent() {
         const { data, hasMore } = res;
         setProducts((prev) => (pageToFetch === 1 ? data : [...prev, ...data]));
         setHasMore(hasMore);
-      } catch (err) {
-        console.error(err);
+      } catch {
         setMessage({ type: "error", text: "Failed to load products" });
       } finally {
         setIsLoading(false);
@@ -83,51 +59,49 @@ export default function SellsContent() {
     [debouncedSearch, selectedCategory]
   );
 
-  useEffect(() => {
-    fetchProducts(page);
-  }, [page, fetchProducts]);
+  useEffect(() => { fetchProducts(page); }, [page, fetchProducts]);
+  useEffect(() => { setProducts([]); setPage(1); setHasMore(true); }, [debouncedSearch, selectedCategory]);
 
-  useEffect(() => {
-    setProducts([]);
-    setPage(1);
-    setHasMore(true);
-  }, [debouncedSearch, selectedCategory]);
+  useInfiniteScroll(loaderRef, () => { if (hasMore && !isLoading) setPage(prev => prev + 1); }, hasMore, isLoading);
 
-  useInfiniteScroll(loaderRef, () => {
-    if (hasMore && !isLoading) setPage((prev) => prev + 1);
-  }, hasMore, isLoading);
-
-  // --- Cart operations ---
-  const handleAddToCartFromList = useCallback((product) => {
-    setCartItems((prev) => {
-      const existing = prev.find((it) => it.id === product.id);
-      if (existing) {
-        if (existing.quantity + 1 > (product.stock_quantity ?? 0)) {
-          setMessage({ type: "info", text: "Stock limit reached" });
-          return prev;
-        }
-        return prev.map((it) => it.id === product.id ? { ...it, quantity: it.quantity + 1 } : it);
-      }
-      return [...prev, { id: product.id, quantity: 1, product }];
-    });
-  }, []);
-
-  const updateCartItem = useCallback((id, quantity) => {
-    setCartItems((prev) => prev.map((it) => (it.id === id ? { ...it, quantity } : it)));
-  }, []);
-
+  // --- Cart helpers ---
   const productsMap = useMemo(() => {
     const map = new Map();
     products.forEach(p => map.set(p.id, p.stock_quantity ?? 0));
     return map;
   }, [products]);
-
+  
   const getStockFor = useCallback((id) => productsMap.get(id) ?? 0, [productsMap]);
 
-  const total = useMemo(
-    () => cartItems.reduce((sum, it) => sum + (Number(it.product.price ?? 0) * it.quantity), 0),
-    [cartItems]
-  );
+  const handleAddToCart = useCallback((product) => {
+    setCartItems(prev => {
+      const existing = prev.find(it => it.id === product.id);
+      const stock = getStockFor(product.id);
+      if (existing) {
+        if (existing.quantity + 1 > stock) { 
+          setMessage({ type: "info", text: "Stock limit reached" }); 
+          return prev; 
+        }
+        return prev.map(it => it.id === product.id ? { ...it, quantity: it.quantity + 1 } : it);
+      }
+      if (stock === 0) { 
+        setMessage({ type: "info", text: "Item out of stock" }); 
+        return prev; 
+      }
+      return [...prev, { id: product.id, quantity: 1, product }];
+    });
+  }, [getStockFor]);
+
+  const updateCartItem = useCallback((id, quantity) => {
+    const stock = getStockFor(id);
+    if (quantity > stock) { 
+      quantity = stock; 
+      setMessage({ type: "info", text: "Stock limit reached" }); 
+    }
+    setCartItems(prev => quantity <= 0 ? prev.filter(it => it.id !== id) : prev.map(it => it.id === id ? { ...it, quantity } : it));
+  }, [getStockFor]);
+
+  const total = useMemo(() => cartItems.reduce((sum, it) => sum + Number(it.product?.price ?? 0) * it.quantity, 0), [cartItems]);
 
   // --- Transaction ---
   const handleCompletePurchase = useCallback(() => {
@@ -136,67 +110,81 @@ export default function SellsContent() {
   }, [cartItems]);
 
   const confirmTransaction = useCallback(async () => {
-    if (!cartItems.length) return;
+    const snapshot = [...cartItems];
+    
+    if (!snapshot.length) {
+      setMessage({ type: "info", text: "Cart is empty" });
+      setShowConfirm(false);
+      return;
+    }
+
     setShowConfirm(false);
     setIsProcessing(true);
 
+    const totalAmount = snapshot.reduce((sum, it) => sum + Number(it.product.price ?? 0) * it.quantity, 0);
+    const payload = {
+      items: snapshot.map(it => ({ 
+        product_id: it.id, 
+        quantity: it.quantity, 
+        snapshot_name: it.product.name, 
+        snapshot_price: it.product.price 
+      })),
+      total_amount: totalAmount
+    };
+
     try {
-      const payload = {
-        items: cartItems.map((item) => ({
-          product_id: item.id,
-          quantity: item.quantity,
-          snapshot_name: item.product.name,
-          snapshot_price: item.product.price,
-        })),
-        total_amount: total,
-      };
-
+      console.log("📤 Sending transaction:", payload);
       const res = await createTransaction(payload);
+      console.log("✅ Response:", res);
 
-      if (res?.sale) {
-        setProducts((prev) =>
-          prev.map((p) => {
-            const purchased = cartItems.find((item) => item.id === p.id);
-            return purchased ? { ...p, stock_quantity: (p.stock_quantity ?? 0) - purchased.quantity } : p;
-          })
-        );
+      // ✅ Check for sale_id OR sale (API returns sale_id)
+      if (res?.sale_id || res?.sale) {
+        // 1. Update stock
+        setProducts(prev => prev.map(p => {
+          const purchased = snapshot.find(it => it.id === p.id);
+          return purchased ? { ...p, stock_quantity: Math.max((p.stock_quantity ?? 0) - purchased.quantity, 0) } : p;
+        }));
+        
+        // 2. Clear cart immediately
         setCartItems([]);
-        setMessage({ type: "success", text: "Transaction successful" });
-
-        setPage(1);
+        
+        // 3. Show success message
+        setMessage({ type: "success", text: res?.message || "Transaction successful!" });
+        
+        // 4. Reset pagination
+        setPage(1); 
         setHasMore(true);
       } else {
         setMessage({ type: "error", text: res?.message || "Transaction failed" });
       }
     } catch (err) {
-      const msg = err.response?.data?.message || "Transaction failed. Try again.";
-      setMessage({ type: "error", text: msg });
+      console.error("❌ Error:", err);
+      const errorMsg = err.response?.data?.message || err.message || "Transaction failed. Try again.";
+      setMessage({ type: "error", text: errorMsg });
     } finally {
       setIsProcessing(false);
     }
-  }, [cartItems, total]);
+  }, [cartItems]);
 
-  // --- Leave page handling (SPA navigation) ---
+  // --- Navigation / Leave page ---
   const attemptNavigation = (path) => {
-    if (cartItems.length > 0) {
-      setPendingNavigation(path);
-      setShowLeaveCartDialog(true);
+    if (cartItems.length > 0) { 
+      setPendingNavigation(path); 
+      setShowLeaveCartDialog(true); 
     } else {
       navigate(path);
     }
   };
 
-  // --- Beforeunload browser warning ---
   useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      if (cartItems.length > 0) {
-        e.preventDefault();
-        e.returnValue = "";
-        return "";
-      }
+    const handler = e => { 
+      if (cartItems.length > 0) { 
+        e.preventDefault(); 
+        e.returnValue = ""; 
+      } 
     };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
   }, [cartItems]);
 
   // --- Render ---
@@ -209,30 +197,24 @@ export default function SellsContent() {
             type="text"
             placeholder="Search items"
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            onChange={e => setSearchInput(e.target.value)}
             className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500"
           />
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={e => setSelectedCategory(e.target.value)}
             className="w-40 border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:outline-none transition-colors duration-200"
           >
-            {categories.map((c) => (
-              <option key={c.id} value={c.category_name}>{c.category_name}</option>
-            ))}
+            {categories.map(c => <option key={c.id} value={c.category_name}>{c.category_name}</option>)}
           </select>
         </div>
-
         <div className="flex-1 overflow-y-auto px-4 py-2">
-          {products.length === 0 && !isLoading ? (
-            <div className="text-center text-gray-500 text-sm py-8">No products found</div>
-          ) : (
-            <div className="space-y-3">
-              {products.map((p) => (
-                <ProductRow key={p.id} product={p} onAdd={handleAddToCartFromList} disabled={getStockFor(p.id) === 0} />
-              ))}
-            </div>
-          )}
+          {products.length === 0 && !isLoading
+            ? <div className="text-center text-gray-500 text-sm py-8">No products found</div>
+            : <div className="space-y-3">
+                {products.map(p => <ProductRow key={p.id} product={p} onAdd={handleAddToCart} disabled={getStockFor(p.id) === 0} />)}
+              </div>
+          }
           {isLoading && <div className="text-center text-gray-400 py-3">Loading more...</div>}
           <div ref={loaderRef} className="h-20"></div>
         </div>
@@ -243,7 +225,7 @@ export default function SellsContent() {
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <h3 className="font-semibold text-gray-800">Transaction summary</h3>
           {cartItems.length > 0 && (
-            <button
+            <button 
               onClick={() => setShowClearCartConfirm(true)}
               className="text-xs font-medium hover:text-gray-700 transition border-2 border-gray-200 p-1 px-2 rounded-md bg-gray-100"
             >
@@ -252,22 +234,21 @@ export default function SellsContent() {
           )}
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          {cartItems.length === 0 ? (
-            <div className="text-center text-sm text-gray-500 py-8">No items selected</div>
-          ) : (
-            <div className="space-y-4">
-              {cartItems.map((it) => (
-                <CartItem
-                  key={it.id}
-                  item={it}
-                  product={it.product}
-                  stock={getStockFor(it.id)}
-                  onUpdateQuantity={updateCartItem}
-                  onLimit={() => setMessage({ type: "info", text: "Stock limit reached" })}
-                />
-              ))}
-            </div>
-          )}
+          {cartItems.length === 0
+            ? <div className="text-center text-sm text-gray-500 py-8">No items selected</div>
+            : <div className="space-y-4">
+                {cartItems.map(it =>
+                  <CartItem 
+                    key={it.id} 
+                    item={it} 
+                    product={it.product} 
+                    stock={getStockFor(it.id)} 
+                    onUpdateQuantity={updateCartItem} 
+                    onLimit={() => setMessage({ type: "info", text: "Stock limit reached" })} 
+                  />
+                )}
+              </div>
+          }
         </div>
         <div className="border-t border-gray-200 p-4">
           <div className="flex justify-between items-center mb-3">
@@ -277,10 +258,9 @@ export default function SellsContent() {
           <button
             onClick={handleCompletePurchase}
             disabled={cartItems.length === 0 || isProcessing}
-            className={`w-full py-2 rounded-md text-white text-sm font-medium transition-colors ${cartItems.length === 0 || isProcessing
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-pink-500 hover:bg-pink-600"
-              }`}
+            className={`w-full py-2 rounded-md text-white text-sm font-medium transition-colors ${
+              cartItems.length === 0 || isProcessing ? "bg-gray-300 cursor-not-allowed" : "bg-pink-500 hover:bg-pink-600"
+            }`}
           >
             {cartItems.length === 0 ? "Empty Cart" : isProcessing ? "Processing..." : "Confirm purchase"}
           </button>
@@ -289,34 +269,38 @@ export default function SellsContent() {
 
       {/* Toast & Modals */}
       <MessageToast message={message} onClose={() => setMessage(null)} duration={1500} />
+      
       {showConfirm && (
-        <ConfirmModal
-          cartItems={cartItems}
-          onClose={() => setShowConfirm(false)}
-          onConfirm={confirmTransaction}
+        <ConfirmModal 
+          cartItems={cartItems} 
+          onClose={() => setShowConfirm(false)} 
+          onConfirm={confirmTransaction} 
         />
       )}
+      
       {showClearCartConfirm && (
         <ClearCartDialogue
           message="Clear Cart?"
           subMessage="Are you sure you want to remove all items from your cart? This action cannot be undone."
-          onConfirm={() => {
-            setCartItems([]);
-            setShowClearCartConfirm(false);
+          onConfirm={() => { 
+            setCartItems([]); 
+            setShowClearCartConfirm(false); 
+            setMessage({ type: "info", text: "Cart cleared" }); 
           }}
           onCancel={() => setShowClearCartConfirm(false)}
         />
       )}
+      
       {showLeaveCartDialog && (
         <LeaveCartItemDialog
           message="Leave this Page?"
           subMessage="You have an ongoing transaction. Leaving now will discard all unsaved items."
-          onConfirm={() => {
-            setCartItems([]);
-            setShowLeaveCartDialog(false);
-            if (pendingNavigation) {
-              navigate(pendingNavigation);
-              setPendingNavigation(null);
+          onConfirm={() => { 
+            setCartItems([]); 
+            setShowLeaveCartDialog(false); 
+            if (pendingNavigation) { 
+              navigate(pendingNavigation); 
+              setPendingNavigation(null); 
             }
           }}
           onCancel={() => setShowLeaveCartDialog(false)}

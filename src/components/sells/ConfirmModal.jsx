@@ -2,7 +2,8 @@ import React, { useMemo } from "react";
 import { formatPeso } from "../../utils/formatPeso";
 
 const ConfirmModal = ({ cartItems = [], onConfirm, onClose, title = "Confirm Purchase" }) => {
-  // Memoize total calculation
+  console.log("Rendering ConfirmModal with cartItems:", cartItems);
+
   const total = useMemo(
     () =>
       cartItems.reduce(
@@ -12,7 +13,10 @@ const ConfirmModal = ({ cartItems = [], onConfirm, onClose, title = "Confirm Pur
     [cartItems]
   );
 
-  if (cartItems.length === 0) return null; // nothing to confirm
+  if (cartItems.length === 0) {
+    console.log("ConfirmModal: cartItems empty!");
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 px-4">

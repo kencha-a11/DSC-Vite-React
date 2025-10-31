@@ -265,19 +265,6 @@ export default function InventoryContent() {
         />
       )}
 
-      {showCreateProduct && (
-        <CreateProductModal
-          categories={categoriesData}
-          onClose={() => setShowCreateProduct(false)}
-          onSuccess={async () => {
-            console.log("🔄 Product created - refetching data...");
-            await refetch(); // Refetch the product list
-            setShowCreateProduct(false);
-          }}
-          setMessage={setMessage}
-        />
-      )}
-
       {editProduct && (
         <EditProductModal
           product={editProduct}
