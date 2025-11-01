@@ -166,16 +166,6 @@ export default function SellsContent() {
     }
   }, [cartItems]);
 
-  // --- Navigation / Leave page ---
-  const attemptNavigation = (path) => {
-    if (cartItems.length > 0) { 
-      setPendingNavigation(path); 
-      setShowLeaveCartDialog(true); 
-    } else {
-      navigate(path);
-    }
-  };
-
   useEffect(() => {
     const handler = e => { 
       if (cartItems.length > 0) { 
@@ -270,6 +260,7 @@ export default function SellsContent() {
       {/* Toast & Modals */}
       <MessageToast message={message} onClose={() => setMessage(null)} duration={1500} />
       
+      {/* Modal & Dialogue */}
       {showConfirm && (
         <ConfirmModal 
           cartItems={cartItems} 
@@ -307,5 +298,6 @@ export default function SellsContent() {
         />
       )}
     </div>
+
   );
 }

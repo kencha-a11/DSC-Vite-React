@@ -2,16 +2,29 @@
 import api from "../api/axios";
 import { extractDataFromResponse } from "../utils/apiHelpers";
 
+/**
+ * Fetch paginated products with filters
+ * @param {number} page - Current page number
+ * @param {number} perPage - Items per page
+ * @param {string} search - Search term
+ * @param {string} category - Category filter (category name)
+ * @param {string} status - Status filter ("stock", "low stock", "out of stock")
+ */
 export async function getProductsData(
   page = 1,
   perPage = 10,
   search = "",
-  category = null
+  category = null,
+  status = "" // ✅ Add status parameter
 ) {
   try {
     const params = new URLSearchParams({ page, perPage, search });
 
-    if (category && category !== "All") params.append("category", category); // must be name
+    // Add category filter (must be name)
+    if (category && category !== "All") params.append("category", category);
+
+    // ✅ Add status filter
+    if (status) params.append("status", status);
 
     const response = await api.get(`/products?${params.toString()}`);
 
@@ -28,7 +41,6 @@ export async function getProductsData(
     };
   }
 }
-
 
 /**
  * Fetch categories

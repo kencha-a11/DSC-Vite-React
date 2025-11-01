@@ -5,7 +5,14 @@ import { getCategories } from "../services/categoryServices";
 export function useCategories() {
   return useQuery({
     queryKey: ["categories"],
-    queryFn: getCategories,
-    staleTime: 0, // always fetch fresh when refetched
+    queryFn: async () => {
+      const data = await getCategories();
+      return [
+        { id: 0, category_name: "All" },
+        { id: -1, category_name: "Uncategorized" }, // 👈 Added
+        ...data,
+      ];
+    },
+    staleTime: 0,
   });
 }

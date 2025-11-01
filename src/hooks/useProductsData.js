@@ -1,18 +1,28 @@
+// src/hooks/useProductsData.js
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getProductsData } from "../services/productServices";
-import { extractDataFromResponse } from "../utils/apiHelpers";
 
 /**
- * Hook for fetching products with infinite scroll, search, and category filter
+ * Hook for fetching products with infinite scroll, search, category, and status filter
  */
-
-export function useProductsData({ search = "", category = "All", perPage = 10 } = {}) {
+export function useProductsData({ 
+  search = "", 
+  category = "All", 
+  status = "", // ✅ Add status parameter
+  perPage = 10 
+} = {}) {
   return useInfiniteQuery({
-    queryKey: ["products", search, category],
+    queryKey: ["products", search, category, status], // ✅ Include status in query key
     queryFn: async ({ pageParam = 1 }) => {
-      const response = await getProductsData(pageParam, perPage, search, category);
+      const response = await getProductsData(
+        pageParam, 
+        perPage, 
+        search, 
+        category,
+        status // ✅ Pass status to API call
+      );
       // Return exactly the shape needed
-      return {
+      return {  
         data: response.data ?? [],
         current_page: response.current_page,
         last_page: response.last_page,

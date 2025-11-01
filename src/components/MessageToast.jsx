@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { CorrectIcon } from "../../src/components/icons/index"; // adjust path if needed
+
 
 export default function MessageToast({ message, onClose, duration = 3000 }) {
   useEffect(() => {
@@ -25,6 +27,9 @@ export default function MessageToast({ message, onClose, duration = 3000 }) {
       <div
         className={`flex items-center justify-between px-6 py-3 border rounded-lg shadow-md ${colors[type]}`}
       >
+        {type === "success" && (
+          <CorrectIcon className="w-5 h-5 text-green-600 mr-3" strokeWidth={2} />
+        )}
         <span>{text}</span>
         <button
           onClick={onClose}
@@ -33,6 +38,7 @@ export default function MessageToast({ message, onClose, duration = 3000 }) {
           ×
         </button>
       </div>
+
 
       {/* Slide-down + bounce animation */}
       <style>{`

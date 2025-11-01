@@ -1,0 +1,15 @@
+// Best Practice: Export from syntax
+
+export { PlusIcon } from './PlusIcon'
+export { SearchIcon } from './SearchIcon'
+export { SettingsIcon } from  './SettingsIcon'
+export { MinusIcon } from './MinusIcon'
+export { AccountsIcon } from './AccountsIcon'
+export { DashboardIcon } from './DashboardIcon'
+export { InventoryIcon } from './InventoryIcon'
+export { RecordsIcon } from './RecordIcon'
+export { ReportsIcon } from './ReportsIcon'
+export { SellIcon } from './SellIcon'
+export { CorrectIcon } from './CorrectIcon'
+export { UploadIcon } from './UploadIcon'
+export { RemoveIcon } from './RemoveIcon'
