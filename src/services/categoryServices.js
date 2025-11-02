@@ -18,7 +18,6 @@ export async function createCategory(data) {
   return response.data;
 }
 
-
 /**
  * Remove multiple categories by name
  * @param {{ categories: string[] }} data

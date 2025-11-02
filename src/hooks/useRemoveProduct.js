@@ -5,7 +5,7 @@ export function useRemoveProducts() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: removeMultipleProducts,
+    mutationFn: removeMultipleProducts, // Uses service function
     onSuccess: () => {
       queryClient.invalidateQueries(["products"]);
     },

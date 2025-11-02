@@ -12,6 +12,8 @@ export function useInventoryHandlers() {
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
+
+
   // Dropdowns and modals
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showCreateCategory, setShowCreateCategory] = useState(false);
@@ -20,6 +22,11 @@ export function useInventoryHandlers() {
   const [showRemoveProducts, setShowRemoveProducts] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
   const [message, setMessage] = useState(null);
+
+  const [restockProduct, setRestockProduct] = useState(null);
+  const [deductProduct, setDeductProduct] = useState(null);
+  const [removeProduct, setRemoveProduct] = useState(null);
+
 
   // Refs for dropdowns/modals
   const dropdownRef = useRef(null);
@@ -103,6 +110,10 @@ export function useInventoryHandlers() {
       showRemoveCategory,
       showRemoveProducts,
       editProduct,
+
+      restockProduct,   // ✅ added
+      deductProduct,    // ✅ added
+      removeProduct,
     },
     setState: {
       setSearchInput,
@@ -115,6 +126,11 @@ export function useInventoryHandlers() {
       setShowRemoveProducts,
       setEditProduct,
       setMessage,
+
+      setRestockProduct, // ✅ added
+      setDeductProduct,  // ✅ added
+      setRemoveProduct,  // ✅ added
+
       set,
     },
     handlers: { getStatus, isFetchingNextPage, setEditProduct },

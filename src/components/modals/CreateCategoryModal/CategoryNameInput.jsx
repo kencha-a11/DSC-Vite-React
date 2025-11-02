@@ -1,4 +1,29 @@
+import MessageToast from "../../MessageToast";
+import { useState, useEffect } from 'react'; // Import useState
+
 export default function CategoryNameInput({ value, onChange, isDuplicate }) {
+  // Add state to manage the toast visibility and content
+  // In a real app, this might be managed higher up, but this fixes the immediate issue.
+  const [toastMessage, setToastMessage] = useState(null);
+
+  // Use useEffect to show the toast when a duplicate is detected
+  useEffect(() => {
+    if (isDuplicate) {
+      setToastMessage({
+        type: 'error',
+        text: 'This category name already exists.',
+      });
+    } else if (toastMessage) {
+      // Hide the toast if the duplicate condition is no longer true
+      setToastMessage(null);
+    }
+  }, [isDuplicate]);
+
+  // Function to close the toast (passed to MessageToast)
+  const handleCloseToast = () => {
+    setToastMessage(null);
+  };
+
   return (
     <div className="flex w-full">
       {/* Title */}
@@ -15,10 +40,14 @@ export default function CategoryNameInput({ value, onChange, isDuplicate }) {
             : "focus:border-blue-300"
         }`}
       />
-      {isDuplicate && (
-        <p className="text-red-500 text-sm mt-1">
-          This category name already exists
-        </p>
+
+      {/* Renders the toast if toastMessage is not null */}
+      {toastMessage && (
+        <MessageToast 
+          message={toastMessage} 
+          onClose={handleCloseToast} 
+          duration={3000} // Optional: Explicitly set duration if needed
+        />
       )}
     </div>
   );

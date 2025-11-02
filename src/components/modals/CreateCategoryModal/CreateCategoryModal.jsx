@@ -2,14 +2,11 @@ import React, { useState, useMemo, useRef } from "react";
 import { createCategory } from "../../../services/categoryServices";
 import { useProductsData } from "../../../hooks/useProductsData";
 import useInfiniteScroll from "../../../hooks/useInfiniteScroll";
-
-import {
-  DualPanelModal,
-  CategoryNameInput,
-  SelectedProductsList,
-  ProductSearchPanel,
-  CategoryConfirmModal,
-} from "./index";
+import DualPanelModal from "../../common/DualPanelModal";
+import CategoryConfirmModal from "../../common/CategoryConfirmModal";
+import CategoryNameInput from "./CategoryNameInput";
+import ProductSearchPanel from "./ProductSearchPanel";
+import SelectedProductsList from "./SelectedProductsList";
 
 export default function CreateCategoryModal({ categories = [], onClose, onSuccess, setMessage }) {
   // --- Form state ---
@@ -26,16 +23,15 @@ export default function CreateCategoryModal({ categories = [], onClose, onSucces
   // --- Fetch products ---
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useProductsData({
     search,
-    category: categoryFilter || "", // send "" when no filter
+    category: categoryFilter || "",
     perPage: 10,
   });
 
   const products = data?.pages?.flatMap((page) => page.data) ?? [];
   useInfiniteScroll(loaderRef, fetchNextPage, hasNextPage, isFetchingNextPage);
 
-  // --- Use categories from props ---
+  // --- Existing categories ---
   const existingCategories = useMemo(() => {
-    // ✅ Gather unique category names from both `categories` prop and products
     const allNames = [
       ...categories.map((c) => c.category_name?.trim()).filter(Boolean),
       ...products.flatMap((p) =>
@@ -52,20 +48,12 @@ export default function CreateCategoryModal({ categories = [], onClose, onSucces
     return ["Uncategorized", ...unique];
   }, [categories, products]);
 
-
-
-
   // --- Filtered products ---
   const availableProducts = useMemo(() => {
     return (products ?? []).filter(
       (p) => !selectedProducts.some((sp) => sp.id === p.id)
     );
   }, [products, selectedProducts]);
-
-
-
-
-
 
   // --- Handlers ---
   const handleAddProduct = (product) => setSelectedProducts((prev) => [...prev, product]);
@@ -91,10 +79,7 @@ export default function CreateCategoryModal({ categories = [], onClose, onSucces
       return;
     }
     if (isDuplicate) {
-      setMessage({
-        type: "warning",
-        text: `⚠️ Category "${trimmedName}" already exists`,
-      });
+      setMessage({ type: "warning", text: `⚠️ Category "${trimmedName}" already exists` });
       return;
     }
     setShowConfirmation(true);
@@ -109,7 +94,6 @@ export default function CreateCategoryModal({ categories = [], onClose, onSucces
       };
 
       await createCategory(payload);
-
       setShowConfirmation(false);
 
       // Reset form
@@ -151,7 +135,7 @@ export default function CreateCategoryModal({ categories = [], onClose, onSucces
             search={search}
             categoryFilter={categoryFilter}
             availableProducts={availableProducts}
-            existingCategories={existingCategories} // ✅ Now from props
+            existingCategories={existingCategories}
             isFetchingNextPage={isFetchingNextPage}
             loaderRef={loaderRef}
             onSearchChange={setSearch}

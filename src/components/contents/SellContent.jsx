@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { getProductsData, getCategoriesData } from "../../services/productServices";
+import { getProductsData } from "../../services/productServices";
+import { getCategories } from "../../services/categoryServices";
 import { createTransaction } from "../../services/saleServices";
 import { formatPeso } from "../../utils/formatPeso";
 import ProductRow from "../sells/ProductRow";
@@ -36,7 +37,7 @@ export default function SellsContent() {
 
   // --- Load categories ---
   useEffect(() => {
-    getCategoriesData()
+    getCategories()
       .then((cats) => setCategories([{ id: 0, category_name: "All" }, ...cats]))
       .catch(() => setMessage({ type: "error", text: "Failed to load categories" }));
   }, []);

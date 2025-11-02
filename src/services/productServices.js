@@ -42,13 +42,13 @@ export async function getProductsData(
   }
 }
 
-/**
- * Fetch categories
- */
-export async function getCategoriesData() {
-  const response = await api.get("/categories");
-  return response?.data ?? [];
-}
+// /**
+//  * Fetch categories
+//  */
+// export async function getCategoriesData() {
+//   const response = await api.get("/categories");
+//   return response?.data ?? [];
+// }
 
 /**
  * Create a new product
@@ -103,10 +103,41 @@ export async function deleteProduct(id) {
  */
 export async function removeMultipleProducts(data) {
   try {
+    // Backend expects: { products: [1, 2, 3] }
     const response = await api.delete("/products/multiple", { data });
     return response.data;
   } catch (error) {
     console.error("Error deleting multiple products:", error);
+    throw error;
+  }
+}
+
+/**
+ * Restock a product
+ * @param {number} id - Product ID
+ * @param {Object} data - { quantity: number }
+ */
+export async function restockProduct(id, data) {
+  try {
+    const response = await api.post(`/products/${id}/restock`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error restocking product:", error);
+    throw error;
+  }
+}
+
+/**
+ * Deduct stock from a product
+ * @param {number} id - Product ID
+ * @param {Object} data - { quantity: number, reason: string }
+ */
+export async function deductProduct(id, data) {
+  try {
+    const response = await api.post(`/products/${id}/deduct`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error deducting product:", error);
     throw error;
   }
 }
