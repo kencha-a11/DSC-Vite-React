@@ -1,23 +1,25 @@
-// src/components/ProtectedRoute.jsx
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Loader from "../components/Loader";
 
-export default function ProtectedRoute({ children }) {
-  // Get current user and loading state from AuthContext
+export default function ProtectedRoute({ children, roles = [] }) {
   const { user, loading } = useAuth();
-
-  // Capture the current location (so we can redirect back after login if needed)
   const location = useLocation();
 
   // While checking authentication status, show a loader
   if (loading) return <Loader text="Loading..." size="lg" overlay />;
 
-  // If no user is logged in, redirect to /home (or login page)
-  // `state.from` stores the attempted location for post-login redirect
-  if (!user) return <Navigate to="/home" state={{ from: location }} replace />;
+  // If user is not logged in → redirect to login or home
+  if (!user) {
+    return <Navigate to="/home" state={{ from: location }} replace />;
+  }
 
-  // If user is authenticated, render the protected content
+  // Check role authorization
+  if (roles.length > 0 && !roles.includes(user.role)) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  // User is authenticated (and authorized, if roles matched)
   return children;
 }

@@ -1,101 +1,102 @@
 import React, { forwardRef } from 'react';
 
-const NonSellingProductList = forwardRef(({ items, selectedDays, onDaysChange, loading }, ref) => {
-  const daysOptions = [7, 14, 30, 60, 90];
+// ✅ NonSellingProductList is a functional component with forwardRef for external refs
+const NonSellingProductList = forwardRef(
+  ({ items, selectedDays, onDaysChange, loading, sentinelRef, containerRef }, ref) => {
+    const daysOptions = [7, 14, 30, 60, 90];
 
-  // Calculate days ago from last_sold_date
-  const calculateDaysAgo = (lastSoldDate) => {
-    if (!lastSoldDate || lastSoldDate === 'Never') return null;
-    
-    const lastSold = new Date(lastSoldDate);
-    const today = new Date();
-    const diffTime = Math.abs(today - lastSold);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
+    // ✅ Helper to calculate days since last sold
+    const calculateDaysAgo = (lastSoldDate) => {
+      if (!lastSoldDate || lastSoldDate === 'Never') return null;
+      const diffTime = Math.abs(new Date() - new Date(lastSoldDate));
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString || dateString === 'Never') return 'Never';
-    
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: '2-digit', 
-      year: 'numeric' 
-    });
-  };
+    // ✅ Helper to format date (not critical for infinite scroll)
+    const formatDate = (dateString) => {
+      if (!dateString || dateString === 'Never') return 'Never';
+      return new Date(dateString).toLocaleDateString('en-US', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+      });
+    };
 
-  return (
-    <div className="bg-white rounded-xl shadow-sm">
-      {/* Header and Filter */}
-      <div className="flex items-center justify-between p-4 border-gray-200 border-b">
-        <h3 className="text-lg font-medium text-gray-900">Not-selling items</h3>
-        <div className="flex items-center space-x-2">
-          {/* Days Unsold Dropdown */}
-          <select
-            value={selectedDays}
-            onChange={(e) => onDaysChange(Number(e.target.value))}
-            className="px-3 py-1 text-sm font-semibold text-gray-700 bg-gray-100 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {daysOptions.map((days) => (
-              <option key={days} value={days}>
-                {days}+
-              </option>
-            ))}
-          </select>
-          <span className="text-sm text-gray-700">days unsold</span>
-        </div>
-      </div>
-
-      {/* List of Non-Selling Items with Scroll */}
-      <div className="max-h-96 overflow-y-auto divide-y">
-        {items.length === 0 && !loading ? (
-          <div className="p-4 text-center text-gray-500">
-            No items found
+    return (
+      <div className="bg-white rounded-xl shadow-sm">
+        <div className="flex items-center justify-between p-4 border-gray-200 border-b">
+          <h3 className="text-lg font-medium text-gray-900">Not-selling items</h3>
+          <div className="flex items-center space-x-2">
+            <select
+              value={selectedDays}
+              onChange={(e) => onDaysChange(Number(e.target.value))}
+              className="px-3 py-1 text-sm font-semibold text-gray-700 bg-gray-100 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {daysOptions.map((d) => (
+                <option key={d} value={d}>
+                  {d}+
+                </option>
+              ))}
+            </select>
+            <span className="text-sm text-gray-700">days unsold</span>
           </div>
-        ) : (
-          items.map((item, index) => {
-            const daysAgo = calculateDaysAgo(item.last_sold_date);
-            const formattedDate = formatDate(item.last_sold_date);
-            
-            return (
-              <div 
-                key={item.id || index} 
-                className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between border-gray-200"
-              >
-                <p className="text-base font-medium text-gray-800">
-                  {item.product_name || item.name}
-                </p>
-                <div className="flex items-center text-sm">
-                  <span className="text-gray-600 mr-1">Last sold:</span>
-                  <span className="font-medium text-gray-800 mr-2">
-                    {formattedDate}
-                  </span>
+        </div>
+
+        {/* ✅ Scrollable container with ref for intersection observer */}
+        <div className="max-h-96 overflow-y-auto divide-y" ref={containerRef}>
+          {/* ✅ Display empty state if no items */}
+          {items.length === 0 && !loading ? (
+            <div className="p-4 text-center text-gray-500">No items found</div>
+          ) : (
+            items.map((item, index) => {
+              const daysAgo = calculateDaysAgo(item.last_sold_date);
+              return (
+                <div
+                  key={item.id || index}
+                  className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between border-gray-200"
+                >
+                  <p className="text-base font-medium text-gray-800">
+                    {item.product_name || item.name}
+                  </p>
                   {daysAgo !== null && (
-                    <span className="text-gray-500">
-                      {daysAgo} days ago
-                    </span>
+                    <span className="text-gray-500">{daysAgo} days ago</span>
                   )}
                 </div>
-              </div>
-            );
-          })
-        )}
-        
-        {/* Infinite Scroll Trigger */}
-        {items.length > 0 && (
-          <div ref={ref} className="p-4 text-center">
-            {loading ? (
-              <span className="text-sm text-gray-500">Loading more...</span>
-            ) : null}
+              );
+            })
+          )}
+
+          {/* ✅ Sentinel div observed by IntersectionObserver to trigger loadMore */}
+          <div ref={sentinelRef} className="p-4 text-center">
+            {loading && <span className="text-sm text-gray-500">Loading more...</span>}
           </div>
-        )}
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
 NonSellingProductList.displayName = 'NonSellingProductList';
-
 export default NonSellingProductList;
+
+/*
+✅ How it works with infinite scroll:
+
+1. The scrollable container has `containerRef` which is passed to `useInfiniteScroll`.
+2. The sentinel div has `sentinelRef` which the IntersectionObserver watches.
+3. `useInfiniteScroll` is initialized in the parent hook (`useManagerDashboardHandler`) with:
+   - sentinelRef: the element at the bottom to detect when near viewport
+   - containerRef.current: the scrollable container as the root
+   - hasMore & loading flags: prevent duplicate or unnecessary fetches
+   - loadMore function: increments page to trigger API fetch
+4. On initial render, containerRef.current might be null:
+   - `useEffect` inside `useInfiniteScroll` handles this by observing the sentinel once the ref is set
+5. When user scrolls and sentinel intersects container viewport:
+   - IntersectionObserver triggers loadMore
+   - loadMore updates the page state
+   - useEffect in the hook fetches next page from API
+   - Newly fetched items are appended to the `items` array
+6. Changing `selectedDays` resets items, page, and hasMore, so observer will fetch fresh data
+7. The component itself does not handle fetching; it only renders items and provides DOM refs for the hook
+8. ✅ Ensure useInfiniteScroll is always called at top-level to properly attach the observer
+*/

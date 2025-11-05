@@ -1,40 +1,71 @@
-// src/hooks/useInfiniteScroll.js
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 
 /**
  * Reusable Infinite Scroll Hook
- * @param {object} ref - Ref to the sentinel (observer target)
- * @param {function} callback - Function to call when near bottom
- * @param {boolean} hasMore - Whether there are more pages to load
- * @param {boolean} isLoading - Prevents double fetching
- * @param {HTMLElement|null} root - Optional scroll container
+ * @param {React.RefObject} sentinelRef - Ref for the sentinel element at the bottom of the list
+ * @param {Function} loadMore - Callback to load the next page
+ * @param {boolean} hasMore - Whether there are more pages to fetch
+ * @param {boolean} isLoading - Loading state to prevent concurrent fetches
+ * @param {React.RefObject} containerRef - Optional scroll container ref
  */
-export default function useInfiniteScroll(ref, callback, hasMore, isLoading, root = null) {
-  const handleObserver = useCallback(
+export default function useInfiniteScroll(
+  sentinelRef,
+  loadMore,
+  hasMore,
+  isLoading,
+  containerRef = null
+) {
+  const observerRef = useRef(null);
+
+  // Stable callback for intersection observer
+  const handleIntersection = useCallback(
     (entries) => {
-      const target = entries[0];
-      if (target.isIntersecting && hasMore && !isLoading) {
-        requestAnimationFrame(() => callback());
+      const [entry] = entries;
+      
+      // Trigger loadMore only when:
+      // 1. Sentinel is intersecting (visible in viewport)
+      // 2. There are more pages available
+      // 3. Not currently loading
+      if (entry.isIntersecting && hasMore && !isLoading) {
+        loadMore();
       }
     },
-    [callback, hasMore, isLoading]
+    [hasMore, isLoading, loadMore]
   );
 
   useEffect(() => {
-    if (!ref?.current) return;
+    // Get current DOM elements
+    const sentinel = sentinelRef?.current;
+    const container = containerRef?.current;
 
-    const observer = new IntersectionObserver(handleObserver, {
-      root, // ⬅️ important for container-based scrolling
-      rootMargin: "200px",
-      threshold: 0.1,
+    // Early return if sentinel doesn't exist
+    if (!sentinel) {
+      return;
+    }
+
+    // Disconnect existing observer before creating new one
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    // Create new IntersectionObserver
+    observerRef.current = new IntersectionObserver(handleIntersection, {
+      root: container || null, // Use container as root or viewport if null
+      rootMargin: "200px",     // Start loading 200px before sentinel is visible
+      threshold: 0.1,          // Trigger when 10% of sentinel is visible
     });
 
-    const current = ref.current;
-    observer.observe(current);
+    // Start observing the sentinel
+    observerRef.current.observe(sentinel);
 
+    // Cleanup function
     return () => {
-      if (current) observer.unobserve(current);
-      observer.disconnect();
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
     };
-  }, [ref, handleObserver, root]);
+  }, [sentinelRef, containerRef, handleIntersection]);
+
+  // No return value needed - this is a side-effect only hook
 }

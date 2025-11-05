@@ -1,6 +1,7 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
 import { login as apiLogin, logout as apiLogout, getUser } from "../services/authServices";
+import { data } from "react-router-dom";
 
 // Create a React Context for authentication state
 const AuthContext = createContext();
@@ -88,6 +89,7 @@ export const AuthProvider = ({ children }) => {
 // Custom hook for consuming AuthContext easily
 export const useAuth = () => {
   const context = useContext(AuthContext);
+  console.log(context)
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }

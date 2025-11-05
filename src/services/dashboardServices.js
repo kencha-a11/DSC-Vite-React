@@ -1,6 +1,12 @@
 import api from "../api/axios";
 
-// -------------------- Manager Dashboard --------------------
+// ==================== Manager Dashboard ====================
+
+/**
+ * Fetches summary data for manager dashboard
+ * @param {number} year - Optional year filter
+ * @param {number} days - Optional recent days filter
+ */
 export const getManagerDashboardData = async (year, days) => {
   const response = await api.get("/dashboard/manager", {
     params: { year, days },
@@ -8,57 +14,90 @@ export const getManagerDashboardData = async (year, days) => {
   return response.data;
 };
 
-// 🧩 Fetch paginated Non-Selling Products (10 per page)
+/**
+ * Fetch paginated Non-Selling Products
+ * @param {number} page - Current page for infinite scroll
+ * @param {number} days - Filter for products not selling in last X days
+ */
 export const getNonSellingProducts = async (page = 1, days = 30) => {
   const response = await api.get("/dashboard/manager/non-selling", {
     params: { page, days },
   });
-  return response.data; // Expect { data: [], meta: { current_page, last_page } }
+  return response.data;
 };
 
-// 🧩 Fetch paginated Low Stock Alerts (10 per page)
+/**
+ * Fetch paginated Low Stock Alerts
+ * @param {number} page - Current page for infinite scroll
+ */
 export const getLowStockAlerts = async (page = 1) => {
   const response = await api.get("/dashboard/manager/low-stock", {
     params: { page },
   });
-  return response.data; // Expect { data: [], meta: { current_page, last_page } }
+  return response.data;
 };
 
-// -------------------- Admin Dashboard --------------------
+// ==================== Admin Dashboard ====================
+
+/**
+ * Fetch summary data for admin dashboard
+ */
 export const getAdminDashboardData = async () => {
   const response = await api.get("/dashboard/admin");
   return response.data;
 };
 
-// -------------------- Cashier Dashboard --------------------
-// -------------------- Cashier Dashboard APIs --------------------
+// ==================== Cashier Dashboard ====================
 
-// Fetch main cashier dashboard summary
+/**
+ * Fetch main cashier dashboard summary
+ */
 export const getCashierDashboardData = async () => {
   const response = await api.get("/dashboard/cashier");
   return response.data;
 };
 
-// Fetch paginated inventory items (default 10 per page)
-export const getCashierInventory = async (page = 1) => {
+/**
+ * Fetch paginated inventory items
+ * @param {number} page - Current page for infinite scroll
+ * @param {string} search - Search term for filtering products
+ */
+export const getCashierInventory = async (page = 1, search = "") => {
   const response = await api.get("/dashboard/cashier/inventory", {
-    params: { page },
+    params: {
+      page,
+      search: search || undefined, // Only send if not empty
+    },
   });
-  return response.data; // Expect { data: [], meta: { current_page, last_page, per_page, total } }
+  return response.data;
 };
 
-// Fetch paginated time logs
-export const getCashierTimeLogs = async (page = 1) => {
+/**
+ * Fetch paginated time logs with optional date filter
+ * @param {number} page - Current page for infinite scroll
+ * @param {string} date - Optional date filter in YYYY-MM-DD format
+ */
+export const getCashierTimeLogs = async (page = 1, date = "") => {
   const response = await api.get("/dashboard/cashier/time-logs", {
-    params: { page },
+    params: {
+      page,
+      date: date || undefined, // ✅ Send date to backend for filtering
+    },
   });
-  return response.data; // Expect { data: [], meta: { current_page, last_page, per_page, total } }
+  return response.data;
 };
 
-// Fetch paginated sales logs
-export const getCashierSalesLogs = async (page = 1) => {
+/**
+ * Fetch paginated sales logs with optional date filter
+ * @param {number} page - Current page for infinite scroll
+ * @param {string} date - Optional date filter in YYYY-MM-DD format
+ */
+export const getCashierSalesLogs = async (page = 1, date = "") => {
   const response = await api.get("/dashboard/cashier/sales-logs", {
-    params: { page },
+    params: {
+      page,
+      date: date || undefined, // ✅ Send date to backend for filtering
+    },
   });
-  return response.data; // Expect { data: [], meta: { current_page, last_page, per_page, total } }
+  return response.data;
 };

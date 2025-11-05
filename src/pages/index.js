@@ -13,6 +13,7 @@ export const loadAccountsContent = () => import('../components/contents/Accounts
 export const loadSellContent = () => import('../components/contents/SellContent');
 export const loadInventoryContent = () => import('../components/inventory/InventoryContent');
 export const loadRecordsContent = () => import('../components/contents/RecordsContent');
-export const loadReportsContent = () => import('../components/contents/ReportsContent');
-
+// export const loadReportsContent = () => import('../components/contents/ReportsContent');
 export const loadProfileContent = () => import('../components/profiles/ProfileContent');
+
+export const loadUnauthorizedPage = () => import('../pages/status/UnauthorizedPage')

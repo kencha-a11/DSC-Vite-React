@@ -75,33 +75,37 @@ export const InventoryTable = memo(({ data, loading, meta, loadMore, scrollRef, 
   const sentinelRef = useRef(null);
 
   // ==============================
-  // Infinite Scroll Observer
+  // Robust Infinite Scroll
   // ==============================
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    const container = containerRef.current;
+
+    if (!sentinel || !container || !loadMore) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !loading && meta?.current_page < meta?.last_page) {
-          console.log("[InventoryTable] Sentinel visible, loading more...");
+        if (
+          entry.isIntersecting &&
+          !loading &&
+          meta?.current_page < meta?.last_page
+        ) {
+          console.log("[InventoryTable] Sentinel visible, loading page", meta.current_page + 1);
           loadMore();
         }
       },
       {
-        root: containerRef.current, // scrollable container
-        rootMargin: "150px",
-        threshold: 0.1,
+        root: container,
+        rootMargin: "300px", // triggers before reaching bottom
+        threshold: 0,        // fires as soon as any part of sentinel is visible
       }
     );
 
     observer.observe(sentinel);
+
     return () => observer.disconnect();
   }, [loading, meta?.current_page, meta?.last_page, loadMore, containerRef]);
 
-  // ==============================
-  // Render
-  // ==============================
   const showEmptyState = !loading && data.length === 0;
   const showLoadingState = loading && data.length === 0;
 
@@ -148,7 +152,7 @@ export const InventoryTable = memo(({ data, loading, meta, loadMore, scrollRef, 
             {data.map((item) => <InventoryRow key={item.id} item={item} />)}
 
             {/* Sentinel for Infinite Scroll */}
-            <div ref={sentinelRef} className="h-4" />
+            <div ref={sentinelRef} className="h-20" />
 
             {/* Loading More Indicator */}
             {loading && data.length > 0 && (
@@ -160,7 +164,7 @@ export const InventoryTable = memo(({ data, loading, meta, loadMore, scrollRef, 
 
             {/* End of Results */}
             {!loading && meta?.current_page >= meta?.last_page && data.length > 0 && (
-              <div className="text-center py-4 text-gray-400 text-sm">— End of inventory —</div>
+              <div className="text-center py-4 text-gray-400 text-sm">End</div>
             )}
           </>
         )}

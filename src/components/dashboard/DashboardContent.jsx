@@ -16,12 +16,13 @@ export default function DashboardContent() {
   }
 
   return (
-    <div className="p-4 h-[91.3vh] overflow-hidden">
+    <div className="p-4 h-[91.3vh] overflow-auto">
       {user.role === "admin" ? (
         <ManagerDashboard />
       ) : (
         <CashierDashboard />
       )}
     </div>
+
   );
 }

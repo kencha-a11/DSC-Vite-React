@@ -1,14 +1,15 @@
 import React, { StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+import { initCsrf } from "./api/axios";
 import { AuthProvider } from "./context/AuthContext";
 import { publicRoutes, protectedRoutes, fallbackRoute } from "./routes/routes";
 import Loader from "./components/Loader";
 import "./index.css";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { initCsrf } from "./api/axios";
 
 const startApp = async () => {
   // Wait for CSRF cookie to be set before mounting the app

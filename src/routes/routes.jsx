@@ -1,5 +1,3 @@
-// src/routes/routes.jsx
-
 import App from "../App";
 import ProtectedRoute from "../routes/ProtectedRoute";
 import { wrapRouteElement } from "../utils/utils";
@@ -13,8 +11,9 @@ import {
   loadSellContent,
   loadInventoryContent,
   loadRecordsContent,
-  loadReportsContent,
+  // loadReportsContent,
   loadProfileContent,
+  loadUnauthorizedPage
 } from "../pages";
 
 // ✅ Public routes
@@ -26,6 +25,7 @@ export const publicRoutes = [
       { index: true, element: wrapRouteElement(loadHomePage) },
       { path: "home", element: wrapRouteElement(loadHomePage) },
       { path: "login", element: wrapRouteElement(loadLoginPage) },
+      { path: "unauthorized", element: wrapRouteElement(loadUnauthorizedPage)},
     ],
   },
 ];
@@ -39,46 +39,61 @@ export const protectedRoutes = [
       {
         path: "dashboard",
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute roles={["admin", "user"]}>
             {wrapRouteElement(loadDashboard)}
           </ProtectedRoute>
         ),
         children: [
-          { 
-            index: true, 
+          {
+            index: true,
             element: wrapRouteElement(loadDashboardContent),
             handle: { title: "Dashboard" },
           },
-          { 
-            path: "accounts", 
-            element: wrapRouteElement(loadAccountsContent),
+          {
+            path: "accounts",
+            element: (
+              <ProtectedRoute roles={["admin"]}>
+                {wrapRouteElement(loadAccountsContent)}
+              </ProtectedRoute>
+            ),
             handle: { title: "Accounts" },
           },
-          { 
-            path: "sell", 
-            element: wrapRouteElement(loadSellContent),
+          {
+            path: "sell",
+            element: (
+              <ProtectedRoute roles={["user"]}>
+                {wrapRouteElement(loadSellContent)}
+              </ProtectedRoute>
+            ),
             handle: { title: "Sell" },
           },
-          { 
-            path: "inventory", 
-            element: wrapRouteElement(loadInventoryContent),
+          {
+            path: "inventory",
+            element: (
+              <ProtectedRoute roles={["admin"]}>
+                {wrapRouteElement(loadInventoryContent)}
+              </ProtectedRoute>
+            ),
             handle: { title: "Inventory" },
           },
-          { 
-            path: "records", 
-            element: wrapRouteElement(loadRecordsContent),
+          {
+            path: "records",
+            element: (
+              <ProtectedRoute roles={["admin"]}>
+                {wrapRouteElement(loadRecordsContent)}
+              </ProtectedRoute>
+            ),
             handle: { title: "Records" },
-          },
-          { 
-            path: "reports", 
-            element: wrapRouteElement(loadReportsContent),
-            handle: { title: "Reports" },
           },
           {
             path: "profile",
-            element: wrapRouteElement(loadProfileContent),
+            element: (
+              <ProtectedRoute roles={["admin", "user"]}>
+                {wrapRouteElement(loadProfileContent)}
+              </ProtectedRoute>
+            ),
             handle: { title: "Profile" },
-          }
+          },
         ],
       },
     ],

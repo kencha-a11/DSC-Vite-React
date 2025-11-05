@@ -2,8 +2,16 @@ import React from "react";
 
 const SalesTrendChart = ({ title, data, selectedYear, onYearChange, className = "" }) => {
   const months = data.map((d) => d.month.substring(0, 3));
-  const maxSales = Math.max(...data.map((d) => d.total_sales));
-  const yAxisValues = Array.from({ length: 6 }, (_, i) => `P${(maxSales / 5) * i}`);
+
+  // Use numeric values for chart calculations
+  const numericSales = data.map((d) => d.total_sales);
+  const maxSales = Math.max(...numericSales);
+
+  // Generate Y-axis labels as formatted currency
+  const yAxisValues = Array.from({ length: 6 }, (_, i) => {
+    const value = (maxSales / 5) * i;
+    return `₱${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  });
 
   return (
     <div className={`bg-white border border-gray-200 rounded-xl shadow-sm ${className}`}>
@@ -22,11 +30,7 @@ const SalesTrendChart = ({ title, data, selectedYear, onYearChange, className = 
             <option value="2026">2026</option>
           </select>
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-            <svg
-              className="fill-current h-4 w-4"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-            >
+            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
               <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
             </svg>
           </div>
@@ -66,10 +70,10 @@ const SalesTrendChart = ({ title, data, selectedYear, onYearChange, className = 
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              points={data
-                .map((d, i) => {
-                  const x = (i / (data.length - 1)) * 600;
-                  const y = 200 - (d.total_sales / maxSales) * 180;
+              points={numericSales
+                .map((sales, i) => {
+                  const x = (i / (numericSales.length - 1)) * 600;
+                  const y = 200 - (sales / maxSales) * 180;
                   return `${x},${y}`;
                 })
                 .join(" ")}
@@ -78,10 +82,10 @@ const SalesTrendChart = ({ title, data, selectedYear, onYearChange, className = 
             {/* Area fill */}
             <polygon
               fill="#ede9fe"
-              points={`0,200 ${data
-                .map((d, i) => {
-                  const x = (i / (data.length - 1)) * 600;
-                  const y = 200 - (d.total_sales / maxSales) * 180;
+              points={`0,200 ${numericSales
+                .map((sales, i) => {
+                  const x = (i / (numericSales.length - 1)) * 600;
+                  const y = 200 - (sales / maxSales) * 180;
                   return `${x},${y}`;
                 })
                 .join(" ")} 600,200`}
