@@ -14,6 +14,7 @@ import {
   loadInventoryContent,
   loadRecordsContent,
   loadReportsContent,
+  loadProfileContent,
 } from "../pages";
 
 // ✅ Public routes
@@ -73,6 +74,11 @@ export const protectedRoutes = [
             element: wrapRouteElement(loadReportsContent),
             handle: { title: "Reports" },
           },
+          {
+            path: "profile",
+            element: wrapRouteElement(loadProfileContent),
+            handle: { title: "Profile" },
+          }
         ],
       },
     ],

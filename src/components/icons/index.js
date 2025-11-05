@@ -13,3 +13,11 @@ export { SellIcon } from './SellIcon'
 export { CorrectIcon } from './CorrectIcon'
 export { UploadIcon } from './UploadIcon'
 export { RemoveIcon } from './RemoveIcon'
+
+// Dashboard Icon
+export { DollarIcon } from './DollarIcon'
+export { BasketIcon } from './BasketIcon'
+export { BoxIcon } from './BoxIcon'
+export { ReceiptIcon } from './ReceiptIcon'
+export { UserIcon } from './UserIcon'
+export { AlarmIcon } from './AlarmIcon'

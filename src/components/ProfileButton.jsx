@@ -1,7 +1,9 @@
+// src/components/ProfileButton.jsx
 import React, { useEffect, useState } from "react";
+import { NavLink } from "react-router-dom";
 import { getUser } from "../services/authServices";
 
-export default function ProfileButton({ onClick } = {}) {
+export default function ProfileButton() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,12 +28,10 @@ export default function ProfileButton({ onClick } = {}) {
     };
   }, []);
 
-  // derive display name
   const displayName =
     (user && (user.name || `${user.first_name || ""} ${user.last_name || ""}`.trim())) ||
     "Firstname Lastname";
 
-  // initials: prefer first letters of first_name + last_name, fallback to initials from name
   const initials = (() => {
     if (!user) return "??";
     const f = (user.first_name || "").trim();
@@ -46,7 +46,6 @@ export default function ProfileButton({ onClick } = {}) {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   })();
 
-  // if your API later adds an avatar url, you can put it in user.avatar or user.profileImage
   const avatarUrl = user && (user.avatar || user.profileImage || user.profile_image);
 
   if (loading) {
@@ -61,10 +60,14 @@ export default function ProfileButton({ onClick } = {}) {
   }
 
   return (
-    <button
-      onClick={onClick}
-      type="button"
-      className="flex items-center gap-3 bg-pink-50 border border-pink-400 text-black rounded-full px-4 py-[7px] hover:bg-pink-100 transition-colors duration-200"
+    <NavLink
+      to="/dashboard/profile"
+      className={({ isActive }) =>
+        [
+          "flex items-center gap-3 bg-pink-50 border border-pink-400 text-black rounded-full px-4 py-[7px] transition-colors duration-200",
+          isActive ? "bg-pink-100" : "hover:bg-pink-100",
+        ].join(" ")
+      }
     >
       {avatarUrl ? (
         <img
@@ -78,6 +81,6 @@ export default function ProfileButton({ onClick } = {}) {
         </div>
       )}
       <span className="text-base font-medium truncate">{displayName}</span>
-    </button>
+    </NavLink>
   );
 }

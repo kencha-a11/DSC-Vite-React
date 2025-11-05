@@ -1,28 +1,71 @@
-// StatCard Component
-export default function StatCard ({ title, value, change, changeType = "percent", icon, iconBg, iconColor }) {
-  const isPositive = change >= 0;
-  
-  return (
-    <div className="flex justify-between items-center p-6 bg-white rounded-lg shadow">
-      <div>
-        <p className="text-gray-500 text-sm font-medium">{title}</p>
-        <p className="text-2xl font-bold mt-1">{value}</p>
-        <div className={`flex items-center mt-2 text-sm font-medium ${
-          isPositive ? "text-green-500" : "text-red-500"
-        }`}>
-          <span className="mr-1">{isPositive ? "▲" : "▼"}</span>
-          <span>
-            {isPositive ? `+${change}` : change}
-            {changeType === "percent" ? "%" : ""}{" "}
-            <span className="text-gray-400 font-normal">
-              vs last {changeType === "percent" ? "month" : "period"}
-            </span>
-          </span>
-        </div>
+import {
+  DollarIcon,
+  BasketIcon,
+  BoxIcon,
+  ReceiptIcon,
+  UserIcon,
+  AlarmIcon
+} from '../../components/icons';
+
+const StatCard = ({ type, value, percentageChange, isIncrease }) => {
+  // Arrow and color logic for percentage cards
+  const percentTextColor = isIncrease ? "text-green-600" : "text-red-600";
+  const percentBgColor = isIncrease ? "bg-green-100" : "bg-red-100";
+  const arrow = isIncrease ? "↑" : "↓";
+
+  // Dashboard card types with JSX icons
+  const cardTypes = {
+    totalSales: { label: "Total Sales", icon: <DollarIcon /> },
+    totalItems: { label: "Total Items Sold", icon: <BasketIcon /> },
+    totalTransactions: { label: "Total Transactions", icon: <ReceiptIcon /> },
+    inventoryCount: { label: "Inventory Count", icon: <BoxIcon /> },
+    activeUsers: { label: "Active Users", icon: <UserIcon /> },
+    totalLogs: { label: "User Log", icon: <AlarmIcon /> },
+  };
+
+  // Fallback for unknown types
+  const current = cardTypes[type] || {
+    label: type,
+    icon: <div className="w-5 h-5 bg-gray-300" />,
+  };
+
+  // Status content: arrow or active badge
+  let statusContent;
+  if (type === "activeUsers") {
+    statusContent = (
+      <div className="flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-700">
+        Active
       </div>
-      <div className={`p-3 rounded-lg ${iconBg}`}>
-        <span className={`text-xl font-bold ${iconColor}`}>{icon}</span>
+    );
+  } else if (type !== "totalLogs") {
+    // Only sales/items/transactions show arrow + percentage
+    statusContent = (
+      <div
+        className={`flex items-center px-3 py-1 rounded-full text-sm font-semibold ${percentBgColor} ${percentTextColor}`}
+      >
+        <span className="mr-1">{arrow}</span>
+        <span>{percentageChange}%</span>
+      </div>
+    );
+  } else {
+    // totalLogs has no badge/statusContent
+    statusContent = null;
+  }
+
+  return (
+    <div className="p-4 border border-gray-200 rounded-xl bg-white shadow-sm w-full">
+      <div className="w-10 h-10 flex items-center justify-center mb-4 border border-gray-300 rounded-lg">
+        {current.icon}
+      </div>
+      <p className="mb-2 text-lg text-gray-600">{current.label}</p>
+      <div className="flex items-center justify-between">
+        {/* Show value prominently for all cards */}
+        <p className="text-3xl font-bold text-gray-900">{value}</p>
+        {/* Show status content only if not totalLogs or activeUsers */}
+        {statusContent}
       </div>
     </div>
   );
 };
+
+export default StatCard;
