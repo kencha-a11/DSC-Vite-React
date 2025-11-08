@@ -42,6 +42,55 @@ export async function getProductsData(
   }
 }
 
+/**
+ * Fetch products data from backend with optional filters.
+ *
+ * @param {number} page - Current page number (default: 1)
+ * @param {number} perPage - Number of items per page (default: 10)
+ * @param {string} search - Search keyword (default: "")
+ * @param {string|null} category - Category name filter (default: null)
+ * @param {string} status - Stock status filter: "stock", "low stock", "out of stock" (default: "")
+ * @returns {Promise<Object>} Paginated product data
+ */
+export async function getSellProductsData(
+  page = 1,
+  perPage = 10,
+  search = "",
+  category = null,
+  status = "" // ✅ Stock status filter
+) {
+  try {
+    const params = new URLSearchParams({
+      page,
+      perPage,
+      search,
+    });
+
+    // Add category filter if provided
+    if (category && category !== "All") {
+      params.append("category", category);
+    }
+
+    // Add status filter if provided
+    if (status) {
+      params.append("status", status);
+    }
+
+    const response = await api.get(`/sell/products?${params.toString()}`);
+    return extractDataFromResponse(response);
+  } catch (error) {
+    console.error("Failed to fetch products:", error.response?.data ?? error);
+    return {
+      data: [],
+      current_page: 1,
+      last_page: 1,
+      per_page: perPage,
+      total: 0,
+      hasMore: false,
+    };
+  }
+}
+
 // /**
 //  * Fetch categories
 //  */
@@ -103,7 +152,7 @@ export async function deleteProduct(id) {
  */
 export async function removeMultipleProducts(data) {
   try {
-    // Backend expects: { products: [1, 2, 3] }
+    // data must be an object: { products: [...] }
     const response = await api.delete("/products/multiple", { data });
     return response.data;
   } catch (error) {
@@ -111,6 +160,7 @@ export async function removeMultipleProducts(data) {
     throw error;
   }
 }
+
 
 /**
  * Restock a product

@@ -8,7 +8,7 @@ export default function InventoryLog() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [productFilter, setProductFilter] = useState("");
+  const [actionFilter, setActionFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -16,39 +16,42 @@ export default function InventoryLog() {
   const loaderRef = useRef();
   const debouncedSearch = useDebounce(search, 400);
 
-  // Fetch logs with pagination
+  // ✅ Fetch logs from server with filters and pagination
   const fetchLogs = useCallback(
     async (pageToFetch = 1) => {
       setLoading(true);
       try {
         const params = {
-          product_id: productFilter || undefined,
+          search: debouncedSearch || undefined,
+          action: actionFilter || undefined,
           date: dateFilter || undefined,
           page: pageToFetch,
-          limit: 20, // adjust as needed
+          limit: 20,
         };
+
         const data = await getInventoryLogs(params);
-        setLogs(prev => (pageToFetch === 1 ? data : [...prev, ...data]));
+
+        setLogs((prev) => (pageToFetch === 1 ? data : [...prev, ...data]));
         setHasMore(data.length > 0);
       } catch (err) {
-        console.error("Failed to fetch inventory logs:", err);
+        console.error("❌ Failed to fetch logs:", err);
         setLogs([]);
         setHasMore(false);
       } finally {
         setLoading(false);
       }
     },
-    [productFilter, dateFilter]
+    [debouncedSearch, actionFilter, dateFilter]
   );
 
-  // Reset logs when filters/search change
+  // ✅ Reset logs when filters/search change
   useEffect(() => {
     setLogs([]);
     setPage(1);
     setHasMore(true);
-  }, [debouncedSearch, productFilter, dateFilter]);
+  }, [debouncedSearch, actionFilter, dateFilter]);
 
-  // Fetch logs when page changes
+  // ✅ Fetch logs when page changes
   useEffect(() => {
     fetchLogs(page);
   }, [page, fetchLogs]);
@@ -57,42 +60,33 @@ export default function InventoryLog() {
   useInfiniteScroll(
     loaderRef,
     () => {
-      if (hasMore && !loading) setPage(prev => prev + 1);
+      if (hasMore && !loading) {
+        setPage((prev) => prev + 1);
+      }
     },
     hasMore,
     loading
   );
 
-  // Filter logs client-side by search
-  const filteredLogs = logs.filter(log =>
-    (log.product?.name ?? "").toLowerCase().includes(debouncedSearch.toLowerCase())
-  );
-
-  const uniqueProducts = Array.from(
-    new Map(
-      logs
-        .filter((l) => l.product?.id && l.product?.name)
-        .map((l) => [l.product.id, { id: l.product.id, name: l.product.name }])
-    ).values()
-  );
+  const actionOptions = [
+    { value: "", label: "All Actions" },
+    { value: "created", label: "Created" },
+    { value: "update", label: "Updated" },
+    { value: "restock", label: "Restocked" },
+    { value: "deducted", label: "Deducted" },
+    { value: "deleted", label: "Deleted" },
+    { value: "adjusted", label: "Adjusted" },
+  ];
 
   const getActionColor = (action) => {
-    const a = (action ?? "").toLowerCase();
-    switch (a) {
-      case "created":
-        return "text-green-600 font-semibold";
-      case "update":
-        return "text-blue-600 font-semibold";
-      case "restock":
-        return "text-emerald-600 font-semibold";
-      case "deducted":
-        return "text-orange-500 font-semibold";
-      case "deleted":
-        return "text-red-600 font-semibold";
-      case "adjusted":
-        return "text-gray-600 font-semibold";
-      default:
-        return "text-gray-700";
+    switch ((action ?? "").toLowerCase()) {
+      case "created": return "text-green-600 font-semibold";
+      case "update": return "text-blue-600 font-semibold";
+      case "restock": return "text-emerald-600 font-semibold";
+      case "deducted": return "text-orange-500 font-semibold";
+      case "deleted": return "text-red-600 font-semibold";
+      case "adjusted": return "text-gray-600 font-semibold";
+      default: return "text-gray-700";
     }
   };
 
@@ -115,7 +109,7 @@ export default function InventoryLog() {
         <div className="flex flex-wrap gap-4 items-center w-full">
           <input
             type="text"
-            placeholder="Search by product..."
+            placeholder="Search by product name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-1/2 min-w-[250px] p-2 border rounded-lg border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -123,13 +117,14 @@ export default function InventoryLog() {
 
           <div className="flex flex-1 gap-4">
             <select
-              value={productFilter}
-              onChange={(e) => setProductFilter(e.target.value)}
+              value={actionFilter}
+              onChange={(e) => setActionFilter(e.target.value)}
               className="flex-1 p-2 border rounded-lg border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Filter by Product</option>
-              {uniqueProducts.map((prod) => (
-                <option key={prod.id} value={prod.id}>{prod.name}</option>
+              {actionOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
 
@@ -151,24 +146,14 @@ export default function InventoryLog() {
         <div className="text-right">Date & Time</div>
       </div>
 
-      {/* Log list */}
+      {/* Logs */}
       <div className="flex-1 overflow-auto">
-        {!loading && filteredLogs.length === 0 && (
+        {logs.length === 0 && !loading && (
           <p className="py-6 text-center text-gray-500">No inventory logs found</p>
         )}
 
-        {filteredLogs.map((log, index) => {
+        {logs.map((log, index) => {
           const date = new Date(log.created_at);
-          const formattedDate = date.toLocaleDateString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          });
-          const formattedTime = date.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-
           return (
             <div
               key={log.id || index}
@@ -183,11 +168,11 @@ export default function InventoryLog() {
                 {log.quantity_change ?? "-"}
               </div>
               <div className="flex items-center text-gray-800 text-sm">
-                {log.product?.name ?? "N/A"}
+                {log.product_name ?? "N/A"}
               </div>
               <div className="flex flex-col items-end text-gray-700 text-sm">
-                <div>{formattedDate}</div>
-                <div className="text-xs text-gray-500">{formattedTime}</div>
+                <div>{date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</div>
+                <div className="text-xs text-gray-500">{date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
               </div>
             </div>
           );

@@ -1,8 +1,10 @@
 // src/services/userServices.js
 import api from "../api/axios";
 
-export async function getUsersData() {
-  const response = await api.get("/users");
+// Accept params for pagination & search
+export async function getUsersData(params = {}) {
+  // Pass the params object to axios as query string
+  const response = await api.get("/users", { params });
   return response.data;
 }
 

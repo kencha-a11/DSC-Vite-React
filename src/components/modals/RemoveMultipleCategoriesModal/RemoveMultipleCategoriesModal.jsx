@@ -1,6 +1,6 @@
 import React from "react";
 import { useRemoveMultipleCategoriesForm } from "./useRemoveMultipleCategoriesForm";
-import DualPanelModal from "../../common/DualPanelModal"; // ✅ Default import
+import DualPanelModal from "../../common/DualPanelModal";
 import CategoryConfirmModal from "../../common/CategoryConfirmModal";
 
 export default function RemoveMultipleCategoriesModal({ onClose, onSuccess, setMessage }) {
@@ -23,32 +23,28 @@ export default function RemoveMultipleCategoriesModal({ onClose, onSuccess, setM
     },
     categoriesData: { availableCategories, isFetchingNextPage },
     isLoading,
-    confirmModalRef,
   } = useRemoveMultipleCategoriesForm({ onClose, onSuccess, setMessage });
 
   // --- Top Panel ---
   const topPanel = (
     <div>
       <h2 className="text-xl font-semibold text-gray-900">Remove Categories</h2>
-      <p className="text-sm text-gray-500 mt-1">Select categories to remove from the system</p>
     </div>
   );
 
   // --- Left Panel ---
   const leftPanel = (
     <div className="flex flex-col h-full">
-      {/* Search */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4">
         <input
           type="text"
           placeholder="Search categories..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+          className="w-full px-3 py-2 border border-purple-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
         />
       </div>
 
-      {/* Category List */}
       <div className="flex-1 overflow-y-auto p-4">
         {availableCategories.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
@@ -59,21 +55,16 @@ export default function RemoveMultipleCategoriesModal({ onClose, onSuccess, setM
             {availableCategories.map((category) => {
               const isSelected = selectedCategories.some((c) => c.id === category.id);
               return (
-                <label
+                <div
                   key={category.id}
-                  className={`flex items-center justify-between border rounded-lg px-3 py-2.5 cursor-pointer transition-all ${
+                  onClick={() => handleToggleCategory(category)}
+                  className={`flex items-center justify-between border rounded-lg p-4 cursor-pointer transition-all ${
                     isSelected
-                      ? "bg-pink-50 border-pink-600 shadow-sm"
+                      ? "bg-pink-50 border-purple-500 shadow-sm"
                       : "border-gray-200 hover:bg-gray-50 hover:border-gray-300"
                   }`}
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => handleToggleCategory(category)}
-                      className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
-                    />
                     <span className="truncate text-sm font-medium text-gray-900">
                       {category.category_name}
                     </span>
@@ -83,7 +74,7 @@ export default function RemoveMultipleCategoriesModal({ onClose, onSuccess, setM
                       {category.products_count} products
                     </span>
                   )}
-                </label>
+                </div>
               );
             })}
             {isFetchingNextPage && (
@@ -93,7 +84,6 @@ export default function RemoveMultipleCategoriesModal({ onClose, onSuccess, setM
         )}
       </div>
 
-      {/* Footer Buttons */}
       <div className="p-4 border-t border-gray-200 flex justify-between gap-3">
         <button
           onClick={handleCancel}
@@ -119,14 +109,12 @@ export default function RemoveMultipleCategoriesModal({ onClose, onSuccess, setM
   // --- Right Panel ---
   const rightPanel = (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <h3 className="font-semibold text-gray-900">
           Selected Categories ({selectedCategories.length})
         </h3>
       </div>
 
-      {/* Selected List */}
       <div className="flex-1 overflow-y-auto p-4">
         {selectedCategories.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
@@ -138,13 +126,17 @@ export default function RemoveMultipleCategoriesModal({ onClose, onSuccess, setM
             {selectedCategories.map((category) => (
               <div
                 key={category.id}
-                className="flex items-center justify-between border-2 border-pink-800 rounded-lg px-3 py-2 hover:bg-pink-50 transition-colors"
+                onClick={() => handleToggleCategory(category)}
+                className="flex items-center justify-between border-2 border-purple-500 rounded-lg p-4 hover:bg-pink-50 transition-colors cursor-pointer"
               >
                 <span className="truncate text-sm font-medium text-gray-900">
                   {category.category_name}
                 </span>
                 <button
-                  onClick={() => handleToggleCategory(category)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleCategory(category);
+                  }}
                   className="text-red-600 hover:text-red-700 text-xl font-bold leading-none ml-2"
                   title="Remove from selection"
                 >
@@ -156,15 +148,14 @@ export default function RemoveMultipleCategoriesModal({ onClose, onSuccess, setM
         )}
       </div>
 
-      {/* Remove Button */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="flex justify-end p-4 border-t border-gray-200">
         <button
           onClick={handleRemoveClick}
           disabled={isRemoveDisabled}
-          className={`w-full px-4 py-2 rounded-lg text-white font-medium transition-colors ${
+          className={`px-4 py-2 rounded-lg text-white font-medium transition-colors ${
             isRemoveDisabled
               ? "bg-gray-300 cursor-not-allowed"
-              : "bg-red-600 hover:bg-red-700"
+              : "bg-purple-500 hover:bg-purple-700"
           }`}
         >
           {removeButtonText}
@@ -185,17 +176,14 @@ export default function RemoveMultipleCategoriesModal({ onClose, onSuccess, setM
 
       {showConfirmation && (
         <CategoryConfirmModal
-          title="Confirm Category Removal"
-          message={`Are you sure you want to remove ${selectedCategories.length} ${
-            selectedCategories.length > 1 ? "categories" : "category"
-          }? This action cannot be undone.`}
+          title="Confirm Deletion"
+          message="The following categories will be deleted permanently"
           items={selectedCategories.map((c) => c.category_name)}
-          confirmLabel="Confirm Remove"
+          confirmLabel="Delete"
           cancelLabel="Cancel"
           onConfirm={handleConfirmRemove}
-          onCancel={() => setShowConfirmation(false)}
+          onClose={() => setShowConfirmation(false)} // updated
           isLoading={isLoading}
-          modalRef={confirmModalRef}
         />
       )}
     </>

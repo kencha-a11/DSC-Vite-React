@@ -19,9 +19,7 @@ export function useRemoveMultipleProductsForm({ onClose, onSuccess, setMessage }
   });
 
   // --- Flatten paginated data ---
-  const products = useMemo(() => {
-    return data?.pages?.flatMap((page) => page.data) ?? [];
-  }, [data]);
+  const products = useMemo(() => data?.pages?.flatMap((page) => page.data) ?? [], [data]);
 
   // --- Infinite scroll ---
   useInfiniteScroll(loaderRef, fetchNextPage, hasNextPage, isFetchingNextPage);
@@ -60,42 +58,44 @@ export function useRemoveMultipleProductsForm({ onClose, onSuccess, setMessage }
     setShowConfirmation(true);
   };
 
-  const handleConfirmRemove = () => {
-    mutate(
-      { products: selectedProducts },
-      {
-        onSuccess: () => {
-          // Close confirmation modal
-          setShowConfirmation(false);
+const handleConfirmRemove = () => {
+  mutate(
+    { products: selectedProducts }, // object with key 'products'
+    {
+      onSuccess: () => {
+        // Close confirmation modal
+        setShowConfirmation(false);
 
-          // Reset form
-          setSelectedProducts([]);
-          setSearch("");
+        // Reset selection and search
+        setSelectedProducts([]);
+        setSearch("");
 
-          // Call success callback - parent will handle toast and refetch
-          if (onSuccess) onSuccess();
-        },
-        onError: (err) => {
-          console.error("Remove products error:", err);
-          
-          const errorText = err?.response?.data?.message || "Failed to remove products";
-          
-          if (setMessage) {
-            setMessage({ type: "error", text: `❌ ${errorText}` });
-          }
-          
-          // Close confirmation modal on error
-          setShowConfirmation(false);
-        },
-      }
-    );
-  };
+        // Show toast via onSuccess
+        if (onSuccess) onSuccess();
+
+        // Close main Remove Multiple Products modal
+        if (onClose) onClose();
+      },
+      onError: (err) => {
+        console.error("Remove products error:", err);
+        const errorText = err?.response?.data?.message || "Failed to remove products";
+
+        if (setMessage) setMessage({ type: "error", text: `❌ ${errorText}` });
+
+        // Close confirmation modal only
+        setShowConfirmation(false);
+      },
+    }
+  );
+};
+
+
 
   // --- Button state ---
   const removeButtonText = isRemoving
     ? "Removing..."
     : selectedProducts.length > 0
-    ? `Remove ${selectedProducts.length} Product${selectedProducts.length > 1 ? "s" : ""}`
+    ? `Remove Selected`
     : "Remove";
 
   const isRemoveDisabled = isRemoving || selectedProducts.length === 0;

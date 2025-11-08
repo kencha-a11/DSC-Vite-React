@@ -1,60 +1,36 @@
-import React, { useState, useEffect } from "react";
-import { PlusIcon } from "@heroicons/react/24/outline";
-import { getUsersData } from "../../services/userServices";
+import React, { useState } from "react";
+import { PlusIcon } from "../icons/index"; 
 import AddUserModal from "./AddUserModal";
 
-export default function AccountListPanel({ onSelectUser, onToast }) {
-  const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+export default function AccountListPanel({
+  users = [],             // default empty array
+  loading = false,        // default false
+  loaderRef,
+  onSelectUser,
+  onToast,
+  onSearch,
+  onUserAdded,
+  searchTerm = ""         // default empty string
+}) {
+  console.log("📝 AccountListPanel rendered", { users, loading, searchTerm });
+
   const [showModal, setShowModal] = useState(false);
-
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
-    try {
-      const data = await getUsersData();
-
-      // Use latest_time_log for the status
-      const mappedUsers = data.map(user => ({
-        ...user,
-        active_status: user.latest_time_log?.current_status === "Active" ? "active" : "inactive"
-      }));
-
-      // Sort: active users first
-      const sortedUsers = mappedUsers.sort((a, b) =>
-        a.active_status === b.active_status ? 0 : a.active_status === "active" ? -1 : 1
-      );
-
-      setUsers(sortedUsers);
-      setFilteredUsers(sortedUsers);
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
-    }
-  };
+  console.log("🔹 Modal state:", showModal);
 
   const handleSearch = (e) => {
-    const term = e.target.value.toLowerCase();
-    setSearchTerm(term);
-
-    const results = users
-      .filter(u => `${u.first_name || ""} ${u.last_name || ""}`.toLowerCase().includes(term))
-      .sort((a, b) =>
-        a.active_status === b.active_status ? 0 : a.active_status === "active" ? -1 : 1
-      );
-
-    setFilteredUsers(results);
+    const term = e.target.value;
+    console.log("🔍 Search input changed:", term);
+    onSearch?.(term); // optional chaining
   };
 
   const handleUserAdded = (newUser) => {
-    const updatedUsers = [...users, newUser].sort((a, b) =>
-      a.active_status === b.active_status ? 0 : a.active_status === "active" ? -1 : 1
-    );
-    setUsers(updatedUsers);
-    setFilteredUsers(updatedUsers);
+    console.log("➕ Adding new user:", newUser);
+    onUserAdded?.(newUser);
+    onToast?.("User added successfully!");
   };
+
+  const hasUsers = Array.isArray(users) && users.length > 0;
+  console.log("ℹ️ Has users?", hasUsers);
 
   return (
     <div className="flex flex-col h-full bg-white rounded-xl border border-gray-200">
@@ -69,65 +45,98 @@ export default function AccountListPanel({ onSelectUser, onToast }) {
         />
 
         <button
-          onClick={() => setShowModal(true)}
-          className="ml-4 flex items-center bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-semibold shadow-md hover:bg-blue-700 transition duration-150 ease-in-out"
+          onClick={() => {
+            console.log("🟢 Open Add User Modal");
+            setShowModal(true);
+          }}
+          className="ml-4 flex items-center bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-semibold shadow-md hover:bg-green-700 transition duration-150 ease-in-out"
         >
           <PlusIcon className="w-5 h-5 mr-2" />
           Add Account
         </button>
       </div>
 
-      {/* Scrollable list area */}
+      {/* Scrollable list */}
       <div className="flex-1 overflow-y-auto">
-        {filteredUsers.length > 0 ? (
-          filteredUsers.map((user) => {
-            const firstName = user.first_name || "";
-            const lastName = user.last_name || "";
-            const fullName = `${firstName} ${lastName}`.trim() || "Unnamed User";
-            const initial = firstName?.charAt?.(0)?.toUpperCase?.() || "?";
+        {loading && !hasUsers ? (
+          <div className="text-center py-10 text-gray-400">Loading users...</div>
+        ) : hasUsers ? (
+          <>
+            {users.map((user) => {
+              console.log("👤 Rendering user:", user);
 
-            return (
-              <div
-                key={user.id}
-                onClick={() => onSelectUser && onSelectUser(user)}
-                className="flex items-center justify-between p-4 border-b last:border-b-0 border-gray-100 cursor-pointer hover:bg-gray-50 transition duration-150 ease-in-out"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-semibold text-gray-600">
-                    {initial}
+              // Use `user.name` if present, fallback to first + last name
+              const fullName =
+                user.name ||
+                `${user.first_name || ""} ${user.last_name || ""}`.trim() ||
+                "Unnamed User";
+
+              // Compute initial
+              const initial =
+                user.first_name?.charAt(0)?.toUpperCase?.() ||
+                user.last_name?.charAt(0)?.toUpperCase?.() ||
+                fullName?.charAt(0)?.toUpperCase?.() ||
+                "?";
+
+              console.log("ℹ️ User fullName & initial:", fullName, initial);
+
+              return (
+                <div
+                  key={user.id}
+                  onClick={() => {
+                    console.log("👆 User clicked:", user);
+                    onSelectUser?.(user);
+                  }}
+                  className="flex items-center justify-between p-4 border-b last:border-b-0 border-gray-100 cursor-pointer hover:bg-gray-50 transition duration-150 ease-in-out"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-semibold text-gray-600">
+                      {initial}
+                    </div>
+                    <div>
+                      <p className="text-gray-800 font-medium">{fullName}</p>
+                      <p className="text-sm text-gray-500">{user.email || "-"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-gray-800 font-medium">{fullName}</p>
-                    <p className="text-sm text-gray-500">{user.email}</p>
-                  </div>
+
+                  {user.active_status === "active" && (
+                    <div className="text-xs px-3 py-1 font-medium rounded-full bg-green-100 text-green-700">
+                      Active
+                    </div>
+                  )}
                 </div>
-                {/* Green/Red status circle */}
-                {/* Status circle */}
-                {user.active_status === "active" && (
-                  <div className="text-xs px-3 py-1 font-medium rounded-full bg-green-100 text-green-700">
-                    Active
-                  </div>
-                )}
+              );
+            })}
 
+            {loading && (
+              <div className="text-center py-4 text-gray-500 text-sm">
+                Loading more users...
               </div>
-            );
-          })
+            )}
+
+            {/* Infinite scroll trigger */}
+            <div ref={loaderRef} className="h-4" />
+          </>
         ) : (
           <div className="text-center py-10 text-gray-400">
-            No users found
+            {searchTerm
+              ? `No users found for "${searchTerm}"`
+              : "No users found"}
           </div>
         )}
       </div>
 
+      {/* Add User Modal */}
       {showModal && (
         <AddUserModal
-          onClose={() => setShowModal(false)}
+          onClose={() => {
+            console.log("❌ Closing Add User Modal");
+            setShowModal(false);
+          }}
           onUserAdded={handleUserAdded}
-          onToast={onToast} // ✅ pass it down
+          onToast={onToast}
         />
       )}
-
-
     </div>
   );
 }

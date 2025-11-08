@@ -61,7 +61,7 @@ export function DeductProduct({ product, onClose, onSuccess }) {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="example: Damaged, Lost"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:border-pink-600 resize-none"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
               rows="3"
               disabled={loading}
             />
@@ -78,7 +78,7 @@ export function DeductProduct({ product, onClose, onSuccess }) {
           </button>
           <button
             onClick={handleSubmit}
-            className="px-5 py-2 rounded-md bg-purple-600 text-white font-medium hover:bg-purple-700 transition disabled:opacity-50"
+            className="px-5 py-2 rounded-md bg-purple-500 text-white font-medium hover:bg-purple-700 transition disabled:opacity-50"
             disabled={loading}
           >
             {loading ? "Processing..." : "Confirm"}

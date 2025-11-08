@@ -23,14 +23,23 @@ export default function TableHeader({ selectedCategory, statusFilter, setState, 
         {/* Status Dropdown */}
         <select
           value={statusFilter}
-          onChange={(e) => setState("statusFilter", e.target.value)}
+          onChange={(e) => {
+            // 💡 Convert to lowercase to match backend exactly
+            const value = e.target.value.toLowerCase();
+            console.log("Status selected:", value); // Debug
+            setState("statusFilter", value);
+          }}
           className="border rounded px-2 py-1 text-sm bg-white"
         >
           <option value="">Status</option>
+          {/* 💡 These must match backend status strings exactly */}
           {["stock", "low stock", "out of stock"].map((s) => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s} value={s.toLowerCase()}>
+              {s}
+            </option>
           ))}
         </select>
+
 
         <div className="text-right">Actions</div>
       </div>

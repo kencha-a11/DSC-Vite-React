@@ -1,11 +1,10 @@
-// InventoryContent.jsx
 import React from "react";
 import HeaderControls from "./InventoryContent/HeaderControl";
 import TableHeader from "./InventoryContent/TableHeader";
 import ProductTable from "./InventoryContent/ProductTable";
 import MessageToast from "../MessageToast";
 
-import { useInventoryHandlers } from "../../hooks/useInventoryhandlers";
+import { useInventoryHandlers } from "./InventoryContent/useInventoryhandlers";
 import { useProductOperationHandler } from "./ProductOperation/useProductOperationHandler";
 
 // ✅ Import modals
@@ -14,8 +13,7 @@ import CreateProductModal from "../modals/CreateProductModal";
 import RemoveMultipleProductsModal from "../modals/RemoveMultipleProductModal/RemoveMultipleProductsModal";
 import RemoveMultipleCategoriesModal from "../modals/RemoveMultipleCategoriesModal/RemoveMultipleCategoriesModal";
 
-// ✅ Import product operation components
-import { EditProduct } from "./ProductOperation/EditProduct";
+// ✅ Import other product operation components
 import { RestockProduct } from "./ProductOperation/RestockProduct";
 import { DeductProduct } from "./ProductOperation/DeductProduct";
 import { RemoveProduct } from "./ProductOperation/RemoveProduct";
@@ -33,17 +31,17 @@ export default function InventoryContent() {
     refetchCategories,
   } = useInventoryHandlers();
 
-  // ✅ Product operation handlers
+  // ✅ Centralized product operation handlers
   const productOperations = useProductOperationHandler({
     setState,
     setMessage: setState.setMessage,
-    refetch,
   });
 
-  return (
-    <div className="flex flex-col h-204 bg-white rounded-xl shadow m-4 border border-gray-200">
+  const { getStatus, isFetchingNextPage } = handlers;
 
-      {/* Header with search and dropdown */}
+  return (
+    <div className="flex flex-col h-[88vh] bg-white rounded-xl shadow m-4 border border-gray-200">
+      {/* Header */}
       <HeaderControls
         searchInput={state.searchInput}
         setState={setState.set}
@@ -51,7 +49,7 @@ export default function InventoryContent() {
         setDropdownOpen={setState.setDropdownOpen}
       />
 
-      {/* Table Header with filters */}
+      {/* Table Header */}
       <TableHeader
         selectedCategory={state.selectedCategory}
         statusFilter={state.statusFilter}
@@ -62,16 +60,20 @@ export default function InventoryContent() {
       {/* Product Table */}
       <ProductTable
         productsPages={filteredPages}
-        getStatus={handlers.getStatus}
-        onEditProduct={(product) => setState.setEditProduct(product)}
+        categories={categories}
+        getStatus={getStatus}
+        // ✅ Open operation modals instead of instant actions
         onRestockProduct={(product) => setState.setRestockProduct(product)}
         onDeductProduct={(product) => setState.setDeductProduct(product)}
         onRemoveProduct={(product) => setState.setRemoveProduct(product)}
         loaderRef={loaderRef}
-        isFetchingNextPage={handlers.isFetchingNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        onEditProduct={(product, formData) =>
+          productOperations.handleEditProduct(product.id, formData)
+        }
       />
 
-      {/* ✅ Category & Product Creation/Removal Modals */}
+      {/* ✅ Category & Product Management Modals */}
       {state.showCreateCategory && (
         <CreateCategoryModal
           categories={categories}
@@ -79,7 +81,10 @@ export default function InventoryContent() {
           onClose={() => setState.set("showCreateCategory", false)}
           onSuccess={() => {
             setState.set("showCreateCategory", false);
-            setState.setMessage({ type: "success", text: "Category created successfully!" });
+            setState.setMessage({
+              type: "success",
+              text: "Category created successfully!",
+            });
             refetch();
             refetchCategories();
           }}
@@ -93,7 +98,10 @@ export default function InventoryContent() {
           onClose={() => setState.set("showCreateProduct", false)}
           onSuccess={() => {
             setState.set("showCreateProduct", false);
-            setState.setMessage({ type: "success", text: "Product created successfully!" });
+            setState.setMessage({
+              type: "success",
+              text: "Product created successfully!",
+            });
             refetch();
           }}
         />
@@ -101,11 +109,16 @@ export default function InventoryContent() {
 
       {state.showRemoveCategory && (
         <RemoveMultipleCategoriesModal
-          categories={categories.filter(c => c.category_name !== "All" && c.category_name !== "Uncategorized")}
+          categories={categories.filter(
+            (c) => c.category_name !== "All" && c.category_name !== "Uncategorized"
+          )}
           onClose={() => setState.set("showRemoveCategory", false)}
           onSuccess={() => {
             setState.set("showRemoveCategory", false);
-            setState.setMessage({ type: "success", text: "Categories removed successfully!" });
+            setState.setMessage({
+              type: "success",
+              text: "Categories removed successfully!",
+            });
             refetchCategories();
             refetch();
           }}
@@ -114,66 +127,104 @@ export default function InventoryContent() {
 
       {state.showRemoveProducts && (
         <RemoveMultipleProductsModal
-          products={filteredPages.flatMap(page => page.data || [])}
+          products={filteredPages.flatMap((page) => page.data || [])}
           onClose={() => setState.set("showRemoveProducts", false)}
           onSuccess={() => {
             setState.set("showRemoveProducts", false);
-            setState.setMessage({ type: "success", text: "Products removed successfully!" });
+            setState.setMessage({
+              type: "success",
+              text: "Products removed successfully!",
+            });
             refetch();
           }}
         />
       )}
 
-      {/* 🧩 Edit Product Modal */}
-      {state.editProduct && (
-        <EditProduct
-          product={state.editProduct}
-          categories={categories}
-          onClose={() => setState.setEditProduct(null)}
-          onSuccess={(formData) => 
-            productOperations.handleEditProduct(state.editProduct.id, formData)
-          }
-        />
-      )}
-
-      {/* 🧩 Restock Product Modal */}
+      {/* ✅ Restock Modal */}
       {state.restockProduct && (
         <RestockProduct
           product={state.restockProduct}
           onClose={() => setState.setRestockProduct(null)}
-          onSuccess={(quantity) => 
-            productOperations.handleRestockProduct(state.restockProduct.id, quantity)
-          }
+          onSuccess={async (quantity) => {
+            try {
+              await productOperations.handleRestockProduct(
+                state.restockProduct.id,
+                quantity
+              );
+              setState.setRestockProduct(null);
+              setState.setMessage({
+                type: "success",
+                text: "Product restocked successfully!",
+              });
+              refetch();
+            } catch (error) {
+              console.error(error);
+              setState.setMessage({
+                type: "error",
+                text: "Failed to restock product.",
+              });
+            }
+          }}
         />
       )}
 
-      {/* 🧩 Deduct Product Modal */}
+      {/* ✅ Deduct Modal */}
       {state.deductProduct && (
         <DeductProduct
           product={state.deductProduct}
           onClose={() => setState.setDeductProduct(null)}
-          onSuccess={(quantity, reason) => 
-            productOperations.handleDeductProduct(state.deductProduct.id, quantity, reason)
-          }
+          onSuccess={async (quantity, reason) => {
+            try {
+              await productOperations.handleDeductProduct(
+                state.deductProduct.id,
+                quantity,
+                reason
+              );
+              setState.setDeductProduct(null);
+              setState.setMessage({
+                type: "success",
+                text: "Product deducted successfully!",
+              });
+              refetch();
+            } catch (error) {
+              console.error(error);
+              setState.setMessage({
+                type: "error",
+                text: "Failed to deduct product.",
+              });
+            }
+          }}
         />
       )}
 
-      {/* 🧩 Remove Product Modal */}
+      {/* ✅ Remove Modal */}
       {state.removeProduct && (
         <RemoveProduct
           product={state.removeProduct}
+          isOpen={true}
           onClose={() => setState.setRemoveProduct(null)}
-          onSuccess={() => 
-            productOperations.handleRemoveProduct(state.removeProduct.id)
-          }
+          onSuccess={async () => {
+            try {
+              await productOperations.handleRemoveProduct(state.removeProduct.id);
+              setState.setRemoveProduct(null);
+              setState.setMessage({
+                type: "success",
+                text: "Product removed successfully!",
+              });
+              refetch();
+            } catch (error) {
+              console.error(error);
+              setState.setMessage({
+                type: "error",
+                text: "Failed to remove product.",
+              });
+            }
+          }}
         />
       )}
 
-      {/* Toast Messages */}
-      <MessageToast
-        message={message}
-        onClose={() => setState.setMessage(null)}
-      />
+      {/* ✅ Toast Messages */}
+      <MessageToast message={message} onClose={() => setState.setMessage(null)} />
     </div>
   );
 }

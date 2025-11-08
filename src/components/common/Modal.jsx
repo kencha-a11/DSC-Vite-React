@@ -1,5 +1,3 @@
-import React from "react";
-
 export default function Modal({ isOpen, onClose, title, children, maxWidth = "2xl" }) {
   if (!isOpen) return null;
 
@@ -14,14 +12,25 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = "2x
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className={`relative z-10 ${maxWidthClasses[maxWidth]} w-full bg-white shadow-xl border-2 border-pink-800 rounded-lg max-h-[90vh] overflow-y-auto`}>
-        <div className="border-b-2 border-gray-200">
-          {title && (
-            <h1 className="text-2xl font-bold text-gray-800 p-6">{title}</h1>
-          )}
-        </div>
-        {children}
+      {/* Overlay: LOWER z-index */}
+      <div
+        className="fixed inset-0 bg-black/50 z-40"
+        onClick={onClose}
+      />
+
+      {/* Modal Content: HIGHER z-index */}
+      <div
+        className={`relative z-50 w-[112vh]  h-[58vh] ${maxWidthClasses[maxWidth]} bg-white shadow-xl border-2 border-purple-500 rounded-lg max-h-[90vh] overflow-y-auto`}
+      >
+        {/* Header */}
+        {title && (
+          <div className="border-b border-gray-200 p-4">
+            <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+          </div>
+        )}
+
+        {/* Body */}
+        <div className="">{children}</div>
       </div>
     </div>
   );

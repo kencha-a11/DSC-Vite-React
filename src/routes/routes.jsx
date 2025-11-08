@@ -13,7 +13,7 @@ import {
   loadRecordsContent,
   // loadReportsContent,
   loadProfileContent,
-  loadUnauthorizedPage
+  loadForbiddenPage
 } from "../pages";
 
 // ✅ Public routes
@@ -25,7 +25,7 @@ export const publicRoutes = [
       { index: true, element: wrapRouteElement(loadHomePage) },
       { path: "home", element: wrapRouteElement(loadHomePage) },
       { path: "login", element: wrapRouteElement(loadLoginPage) },
-      { path: "unauthorized", element: wrapRouteElement(loadUnauthorizedPage)},
+      { path: "unauthorized", element: wrapRouteElement(loadForbiddenPage)},
     ],
   },
 ];

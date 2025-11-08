@@ -44,11 +44,12 @@ export default function EditUserModal({ user, onClose, onUserUpdated, onToast })
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
       <div className="bg-white rounded-xl w-[480px] shadow-lg border-2 border-purple-600">
-        <form onSubmit={handleSubmit} className="p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Edit User Profile</h2>
+
+        <form onSubmit={handleSubmit}>
+          <h2 className="text-xl font-semibold text-gray-900 p-4 border-b border-gray-200">Edit User Profile</h2>
 
           {/* Two-column layout for names */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 p-4">
             <div>
               <label className="text-sm font-medium text-gray-700">First Name</label>
               <input
@@ -76,7 +77,7 @@ export default function EditUserModal({ user, onClose, onUserUpdated, onToast })
           </div>
 
           {/* Other fields */}
-          <div className="space-y-4 mt-4">
+          <div className="space-y-4 p-4">
             <div>
               <label className="text-sm font-medium text-gray-700">Email</label>
               <input
@@ -145,11 +146,11 @@ export default function EditUserModal({ user, onClose, onUserUpdated, onToast })
           </div>
 
           {/* Footer buttons */}
-          <div className="flex justify-between border-t pt-4 mt-6">
+          <div className="flex justify-between border-t border-gray-200 p-4 mt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded-md text-gray-500 hover:bg-gray-100"
+              className="px-4 py-2 bg-gray-200 rounded-md text-gray-500 hover:bg-gray-100"
             >
               Cancel
             </button>
@@ -158,7 +159,7 @@ export default function EditUserModal({ user, onClose, onUserUpdated, onToast })
               disabled={loading}
               className="px-4 py-2 rounded-md bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
             >
-              {loading ? "Saving..." : "Update"}
+              {loading ? "Saving..." : "Confirm"}
             </button>
           </div>
         </form>

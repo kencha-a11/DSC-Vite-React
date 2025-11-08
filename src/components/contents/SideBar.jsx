@@ -17,9 +17,9 @@ import {
 const menuItems = [
   { name: "Dashboard", to: "/dashboard", Icon: DashboardIcon, roles: ["cashier", "manager"] },
   { name: "Accounts", to: "/dashboard/accounts", Icon: AccountsIcon, roles: ["manager"] },
-  { name: "Sells", to: "/dashboard/sell", Icon: SellIcon, roles: ["cashier", "manager"] },
+  { name: "Sells", to: "/dashboard/sell", Icon: SellIcon, roles: ["cashier"] },
   { name: "Inventory", to: "/dashboard/inventory", Icon: InventoryIcon, roles: ["manager"] },
-  { name: "Records", to: "/dashboard/records", Icon: RecordsIcon, roles: ["cashier", "manager"] },
+  { name: "Records", to: "/dashboard/records", Icon: RecordsIcon, roles: ["manager"] },
 ];
 
 export default function Sidebar() {

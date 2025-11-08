@@ -26,16 +26,17 @@ export function useProductOperationHandler({ setState, setMessage }) {
 
   /**
    * 🧩 Handle Edit Product
+   * Supports FormData from EditProduct modal
    */
   const handleEditProduct = async (productId, formData) => {
     try {
       await updateProductMutation.mutateAsync({ id: productId, formData });
-      setState.setEditProduct(null);
-      setMessage({ type: "success", text: "Product updated successfully!" });
+      setState?.setEditProduct?.(null);
+      setMessage?.({ type: "success", text: "Product updated successfully!" });
       refreshProducts(); // ✅ force full refetch
     } catch (error) {
-      console.error("Edit product error:", error);
-      setMessage({ 
+      console.error("❌ Edit product error:", error);
+      setMessage?.({ 
         type: "error", 
         text: error.response?.data?.message || "Failed to update product" 
       });
@@ -49,12 +50,12 @@ export function useProductOperationHandler({ setState, setMessage }) {
   const handleRestockProduct = async (productId, quantity) => {
     try {
       await restockProductMutation.mutateAsync({ id: productId, quantity });
-      setState.setRestockProduct(null);
-      setMessage({ type: "success", text: "Product restocked successfully!" });
-      refreshProducts(); // ✅ refetch
+      setState?.setRestockProduct?.(null);
+      setMessage?.({ type: "success", text: "Product restocked successfully!" });
+      refreshProducts();
     } catch (error) {
-      console.error("Restock product error:", error);
-      setMessage({ 
+      console.error("❌ Restock product error:", error);
+      setMessage?.({ 
         type: "error", 
         text: error.response?.data?.message || "Failed to restock product" 
       });
@@ -68,12 +69,12 @@ export function useProductOperationHandler({ setState, setMessage }) {
   const handleDeductProduct = async (productId, quantity, reason) => {
     try {
       await deductProductMutation.mutateAsync({ id: productId, quantity, reason });
-      setState.setDeductProduct(null);
-      setMessage({ type: "success", text: "Stock deducted successfully!" });
-      refreshProducts(); // ✅ refetch
+      setState?.setDeductProduct?.(null);
+      setMessage?.({ type: "success", text: "Stock deducted successfully!" });
+      refreshProducts();
     } catch (error) {
-      console.error("Deduct product error:", error);
-      setMessage({ 
+      console.error("❌ Deduct product error:", error);
+      setMessage?.({ 
         type: "error", 
         text: error.response?.data?.message || "Failed to deduct stock" 
       });
@@ -87,12 +88,12 @@ export function useProductOperationHandler({ setState, setMessage }) {
   const handleRemoveProduct = async (productId) => {
     try {
       await deleteProductMutation.mutateAsync(productId);
-      setState.setRemoveProduct(null);
-      setMessage({ type: "success", text: "Product removed successfully!" });
-      refreshProducts(); // ✅ refetch
+      setState?.setRemoveProduct?.(null);
+      setMessage?.({ type: "success", text: "Product removed successfully!" });
+      refreshProducts();
     } catch (error) {
-      console.error("Remove product error:", error);
-      setMessage({ 
+      console.error("❌ Remove product error:", error);
+      setMessage?.({ 
         type: "error", 
         text: error.response?.data?.message || "Failed to remove product" 
       });

@@ -8,12 +8,13 @@ export const loadNotFoundPage = () => import('./status/NotFoundPage');
 
 // Nested Dashboard Content Components
 // Centralizing these here also makes the routes file cleaner.
-export const loadDashboardContent = () => import('../components/dashboard/DashboardContent');
-export const loadAccountsContent = () => import('../components/contents/AccountsContent');
-export const loadSellContent = () => import('../components/contents/SellContent');
 export const loadInventoryContent = () => import('../components/inventory/InventoryContent');
-export const loadRecordsContent = () => import('../components/contents/RecordsContent');
-// export const loadReportsContent = () => import('../components/contents/ReportsContent');
+export const loadDashboardContent = () => import('../components/dashboard/DashboardContent');
 export const loadProfileContent = () => import('../components/profiles/ProfileContent');
 
-export const loadUnauthorizedPage = () => import('../pages/status/UnauthorizedPage')
+export const loadAccountsContent = () => import('../components/contents/AccountsContent');
+export const loadSellContent = () => import('../components/sells/SellContent');
+export const loadRecordsContent = () => import('../components/contents/RecordsContent');
+// export const loadReportsContent = () => import('../components/contents/ReportsContent');
+
+export const loadForbiddenPage = () => import('../pages/status/ForbiddenPage')

@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from "react";
-import { useCategories } from "../../../hooks/useCategories";
+import { useCategoryData } from "../../../hooks/useCategoryData";
 import { useRemoveCategories } from "../../../hooks/useRemoveCategories";
 
 export function useRemoveMultipleCategoriesForm({ onClose, onSuccess, setMessage }) {
@@ -10,7 +10,7 @@ export function useRemoveMultipleCategoriesForm({ onClose, onSuccess, setMessage
   const confirmModalRef = useRef(null);
 
   // --- Fetch all categories ---
-  const { data: categories = [], isFetching } = useCategories();
+  const { data: categories = [], isFetching } = useCategoryData();
 
   // --- Filter out selected ones ---
   const availableCategories = useMemo(() => {

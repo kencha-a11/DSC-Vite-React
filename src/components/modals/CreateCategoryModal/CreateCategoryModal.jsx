@@ -158,6 +158,8 @@ export default function CreateCategoryModal({ categories = [], onClose, onSucces
 
       {showConfirmation && (
         <CategoryConfirmModal
+          title="Category confirmation summary"
+          confirmLabel="Create"
           categoryName={categoryName}
           products={selectedProducts}
           onClose={() => setShowConfirmation(false)}

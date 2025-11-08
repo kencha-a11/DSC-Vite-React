@@ -24,7 +24,6 @@ export default function RemoveMultipleProductsModal({ onClose, onSuccess, setMes
     },
     productsData: {
       products,
-      productsToDelete,
       loaderRef,
       confirmModalRef,
       isFetchingNextPage,
@@ -36,25 +35,22 @@ export default function RemoveMultipleProductsModal({ onClose, onSuccess, setMes
   const topPanel = (
     <div>
       <h2 className="text-xl font-semibold text-gray-900">Remove Products</h2>
-      <p className="text-sm text-gray-500 mt-1">Select products to remove from inventory</p>
     </div>
   );
 
   // --- Left Panel ---
   const leftPanel = (
     <div className="flex flex-col h-full">
-      {/* Search */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4">
         <input
           type="text"
           placeholder="Search products..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+          className="w-full px-3 py-2 border border-purple-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
         />
       </div>
 
-      {/* Product List */}
       <div className="flex-1 overflow-y-auto p-4">
         {isLoading ? (
           <div className="text-center py-8 text-gray-500">
@@ -66,17 +62,13 @@ export default function RemoveMultipleProductsModal({ onClose, onSuccess, setMes
           </div>
         ) : (
           <div className="space-y-2">
-            {products.map((product) => {
-              const isSelected = selectedProducts.includes(product.id);
-              return (
+            {products
+              .filter((p) => !selectedProducts.includes(p.id))
+              .map((product) => (
                 <div
                   key={product.id}
                   onClick={() => toggleProduct(product.id)}
-                  className={`flex items-center justify-between border rounded-lg px-3 py-2 cursor-pointer transition-all ${
-                    isSelected
-                      ? "bg-pink-50 border-pink-600 shadow-sm"
-                      : "border-gray-200 hover:bg-gray-50 hover:border-gray-300"
-                  }`}
+                  className="flex items-center justify-between border rounded-lg px-3 py-2 cursor-pointer transition-all hover:bg-gray-50 hover:border-gray-300"
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <img
@@ -87,20 +79,10 @@ export default function RemoveMultipleProductsModal({ onClose, onSuccess, setMes
                         e.target.src = `https://via.placeholder.com/40?text=${product.name?.[0] || "P"}`;
                       }}
                     />
-                    <div className="flex-1 min-w-0">
-                      <div className="truncate font-medium text-gray-900">{product.name}</div>
-                      <div className="text-xs text-gray-500">₱{Number(product.price ?? 0).toFixed(2)}</div>
-                    </div>
+                    <span className="truncate font-medium text-gray-900">{product.name}</span>
                   </div>
-                  {isSelected && (
-                    <div className="shrink-0 w-5 h-5 bg-pink-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">✓</span>
-                    </div>
-                  )}
                 </div>
-              );
-            })}
-
+              ))}
             <div ref={loaderRef} className="py-4 text-center">
               {isFetchingNextPage && <span className="text-sm text-gray-500">Loading more...</span>}
             </div>
@@ -108,7 +90,6 @@ export default function RemoveMultipleProductsModal({ onClose, onSuccess, setMes
         )}
       </div>
 
-      {/* Footer Buttons */}
       <div className="p-4 border-t border-gray-200 flex justify-between gap-3">
         <button
           onClick={handleCancel}
@@ -134,14 +115,12 @@ export default function RemoveMultipleProductsModal({ onClose, onSuccess, setMes
   // --- Right Panel ---
   const rightPanel = (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <h3 className="font-semibold text-gray-900">
           Selected Products ({selectedProducts.length})
         </h3>
       </div>
 
-      {/* Selected List */}
       <div className="flex-1 overflow-y-auto p-4">
         {selectedProducts.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
@@ -150,47 +129,49 @@ export default function RemoveMultipleProductsModal({ onClose, onSuccess, setMes
           </div>
         ) : (
           <div className="space-y-2">
-            {productsToDelete.map((product) => (
-              <div
-                key={product.id}
-                className="flex items-center justify-between border-2 border-pink-800 rounded-lg px-3 py-2 hover:bg-pink-50 transition-colors"
-              >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <img
-                    src={product.image || `https://via.placeholder.com/32?text=${product.name?.[0] || "P"}`}
-                    alt={product.name}
-                    className="w-8 h-8 object-cover rounded shrink-0"
-                    onError={(e) => {
-                      e.target.src = `https://via.placeholder.com/32?text=${product.name?.[0] || "P"}`;
-                    }}
-                  />
-                  <span className="truncate text-sm text-gray-900">{product.name}</span>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleProduct(product.id);
-                  }}
-                  className="text-red-600 hover:text-red-700 text-xl font-bold leading-none ml-2"
-                  title="Remove from selection"
+            {products
+              .filter((p) => selectedProducts.includes(p.id))
+              .map((product) => (
+                <div
+                  key={product.id}
+                  onClick={() => toggleProduct(product.id)}
+                  className="flex items-center justify-between border-2 border-purple-500 rounded-lg px-3 py-2 hover:bg-pink-50 transition-colors cursor-pointer"
                 >
-                  ×
-                </button>
-              </div>
-            ))}
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <img
+                      src={product.image || `https://via.placeholder.com/32?text=${product.name?.[0] || "P"}`}
+                      alt={product.name}
+                      className="w-8 h-8 object-cover rounded shrink-0"
+                      onError={(e) => {
+                        e.target.src = `https://via.placeholder.com/32?text=${product.name?.[0] || "P"}`;
+                      }}
+                    />
+                    <span className="truncate text-sm text-gray-900">{product.name}</span>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleProduct(product.id);
+                    }}
+                    className="text-red-600 hover:text-red-700 text-xl font-bold leading-none ml-2"
+                    title="Remove from selection"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
           </div>
         )}
       </div>
 
-      {/* Remove Button */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="flex justify-end p-4 border-t border-gray-200">
         <button
           onClick={handleRemoveClick}
           disabled={isRemoveDisabled}
-          className={`w-full px-4 py-2 rounded-lg text-white font-medium transition-colors ${
+          className={`px-4 py-2 rounded-lg text-white font-medium transition-colors ${
             isRemoveDisabled
               ? "bg-gray-300 cursor-not-allowed"
-              : "bg-red-600 hover:bg-red-700"
+              : "bg-purple-500 hover:bg-purple-700"
           }`}
         >
           {removeButtonText}
@@ -211,17 +192,14 @@ export default function RemoveMultipleProductsModal({ onClose, onSuccess, setMes
 
       {showConfirmation && (
         <CategoryConfirmModal
-          title="Confirm Product Removal"
-          message={`Are you sure you want to remove ${productsToDelete.length} ${
-            productsToDelete.length > 1 ? "products" : "product"
-          }? This action cannot be undone.`}
-          products={productsToDelete}
+          title="Confirm deletion"
+          message="The following items will be deleted permanently"
+          items={products.filter((p) => selectedProducts.includes(p.id)).map((p) => p.name)}
           confirmLabel="Confirm Remove"
           cancelLabel="Cancel"
           onConfirm={handleConfirmRemove}
-          onCancel={() => setShowConfirmation(false)}
+          onClose={() => setShowConfirmation(false)}
           isLoading={isRemoving}
-          modalRef={confirmModalRef}
         />
       )}
     </>

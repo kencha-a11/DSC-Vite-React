@@ -16,8 +16,9 @@ export default function DualPanelModal({ isOpen, onClose, topPanel, leftPanel, r
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+
       <div
-        className="relative bg-white w-full max-w-[900px] h-[600px] shadow-lg flex flex-col overflow-hidden border-2 rounded-xl border-pink-800"
+        className="relative bg-white w-[112vh]  h-[58vh] shadow-lg flex flex-col overflow-hidden border-2 rounded-xl border-purple-500"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Panel */}

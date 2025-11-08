@@ -9,14 +9,13 @@ export default function TimeLog() {
   const [search, setSearch] = useState("");
   const [userFilter, setUserFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState(""); // ✅ new filter
+  const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
   const loaderRef = useRef();
   const debouncedSearch = useDebounce(search, 400);
 
-  // Fetch logs from API with pagination
   const fetchLogs = useCallback(
     async (pageToFetch = 1) => {
       setLoading(true);
@@ -28,12 +27,15 @@ export default function TimeLog() {
           page: pageToFetch,
           limit: 20,
         };
+
         const data = await getTimeLogs(params);
 
-        setLogs(prev => (pageToFetch === 1 ? data : [...prev, ...data]));
+        setLogs((prev) =>
+          pageToFetch === 1 ? data : [...prev, ...data]
+        );
         setHasMore(data.length > 0);
       } catch (err) {
-        console.error("Failed to fetch logs:", err);
+        console.error("❌ Failed to fetch logs:", err);
         setLogs([]);
         setHasMore(false);
       } finally {
@@ -43,45 +45,67 @@ export default function TimeLog() {
     [userFilter, dateFilter, statusFilter]
   );
 
-  // Reset logs and page when filters/search change
   useEffect(() => {
     setLogs([]);
     setPage(1);
     setHasMore(true);
   }, [debouncedSearch, userFilter, dateFilter, statusFilter]);
 
-  // Fetch logs when page changes
   useEffect(() => {
     fetchLogs(page);
   }, [page, fetchLogs]);
 
-  // Infinite scroll
-  useInfiniteScroll(loaderRef, () => {
-    if (hasMore && !loading) setPage(prev => prev + 1);
-  }, hasMore, loading);
+  useInfiniteScroll(
+    loaderRef,
+    () => {
+      if (hasMore && !loading) {
+        setPage((prev) => prev + 1);
+      }
+    },
+    hasMore,
+    loading
+  );
 
-  const filteredLogs = logs.filter(log =>
-    (log.user?.name ?? "").toLowerCase().includes(debouncedSearch.toLowerCase())
-  ).filter(log => {
-    if (statusFilter === "online") return log.end_time === null;
-    if (statusFilter === "offline") return log.end_time !== null;
-    return true;
-  });
+  const filteredLogs = logs
+    .filter((log) =>
+      (log.user?.name ?? "")
+        .toLowerCase()
+        .includes(debouncedSearch.toLowerCase())
+    )
+    .filter((log) => {
+      if (statusFilter === "online") return log.end_time === null;
+      if (statusFilter === "offline") return log.end_time !== null;
+      return true;
+    });
 
+  // ✅ Compute duration (handles ongoing and live updates)
   const computeDuration = (start, end) => {
     if (!start) return "--";
-    if (!end) return "Ongoing";
-    const diffMs = new Date(end) - new Date(start);
+
+    const startDate = new Date(start);
+    const endDate = end ? new Date(end) : new Date();
+
+    const diffMs = endDate - startDate;
     const diffMins = Math.floor(diffMs / 60000);
+
+    if (diffMins < 1) return "0m";
+
     const hours = Math.floor(diffMins / 60);
     const mins = diffMins % 60;
-    if (hours > 0 && mins > 0) return `${hours}h ${mins}m`;
-    if (hours > 0) return `${hours}h`;
-    return `${mins}m`;
+
+    return `${hours > 0 ? `${hours}h ` : ""}${mins}m`.trim();
   };
 
+  // ✅ Auto-update ongoing durations every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLogs((prev) => [...prev]);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   const uniqueUsers = Array.from(
-    new Map(logs.map(l => [l.user?.id, l.user])).values()
+    new Map(logs.map((l) => [l.user?.id, l.user])).values()
   ).sort((a, b) => (a?.name ?? "").localeCompare(b?.name ?? ""));
 
   return (
@@ -103,8 +127,10 @@ export default function TimeLog() {
               className="flex-1 p-2 border rounded-lg border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Filter by User</option>
-              {uniqueUsers.map(user => (
-                <option key={user?.id} value={user?.id}>{user?.name}</option>
+              {uniqueUsers.map((user) => (
+                <option key={user?.id} value={user?.id}>
+                  {user?.name}
+                </option>
               ))}
             </select>
             <input
@@ -149,6 +175,7 @@ export default function TimeLog() {
               key={`log-${log.id ?? index}`}
               className="grid grid-cols-[1.2fr_1fr_1fr_0.8fr] items-center px-8 py-4 border-t border-gray-200 hover:bg-gray-50"
             >
+              {/* User */}
               <div className="flex items-center gap-3 py-4">
                 <div className="relative">
                   <div className="w-10 h-10 flex items-center justify-center rounded-full bg-violet-500 text-white font-semibold text-lg uppercase">
@@ -158,19 +185,53 @@ export default function TimeLog() {
                     <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
                   )}
                 </div>
-                <span className="font-medium text-gray-800">{log.user?.name ?? "N/A"}</span>
+                <span className="font-medium text-gray-800">
+                  {log.user?.name ?? "N/A"}
+                </span>
               </div>
 
+              {/* Date */}
               <div className="text-gray-700 text-sm">
-                <div>{startDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</div>
-                <div className="text-xs text-gray-500">{startDate.toLocaleDateString("en-US", { weekday: "long" })}</div>
+                <div>
+                  {startDate.toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {startDate.toLocaleDateString("en-US", { weekday: "long" })}
+                </div>
               </div>
 
+              {/* Time */}
               <div className="text-gray-700 text-sm">
-                <div>Start {startDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
-                <div>End {log.end_time ? endDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--:--"}</div>
+                <div>
+                  Start{" "}
+                  {startDate.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>
+                    End{" "}
+                    {log.end_time
+                      ? endDate.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "--:--"}
+                  </span>
+                  {!log.end_time && (
+                    <span className="text-green-600 font-semibold ml-2">
+                      Ongoing
+                    </span>
+                  )}
+                </div>
               </div>
 
+              {/* Duration */}
               <div className="text-gray-800 text-sm font-semibold text-right">
                 {computeDuration(log.start_time, log.end_time)}
               </div>
@@ -178,8 +239,9 @@ export default function TimeLog() {
           );
         })}
 
-        {/* Infinite scroll loader */}
-        {loading && <div className="text-center py-4 text-gray-500">Loading...</div>}
+        {loading && (
+          <div className="text-center py-4 text-gray-500">Loading...</div>
+        )}
         <div ref={loaderRef} className="h-10"></div>
       </div>
     </div>
