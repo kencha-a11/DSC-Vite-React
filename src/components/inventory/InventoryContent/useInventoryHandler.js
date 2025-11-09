@@ -1,11 +1,12 @@
+// components/InventoryContent/useInventoryHandlers.js
 import { useState, useRef, useMemo } from "react";
 import { useProductsData } from "../../../hooks/useProductsData";
 import { useCategoryData } from "../../../hooks/useCategoryData";
 import useDebounce from "../../../hooks/useDebounce";
 import useInfiniteScroll from "../../../hooks/useInfiniteScroll";
-import useClickOutside from "../../../hooks/useClickOutSide";
+import useClickOutside from "../../../hooks/useClickOutside";
 
-export function useInventoryHandlers() {
+export function useInventoryHandler() {
   // =========================
   // Filters and state
   // =========================

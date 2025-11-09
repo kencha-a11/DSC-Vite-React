@@ -1,3 +1,4 @@
+// components/hooks/useClickOutside.js
 import { useEffect } from "react";
 
 export default function useClickOutside(ref, callback) {

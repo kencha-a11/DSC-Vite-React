@@ -4,7 +4,7 @@ import TableHeader from "./InventoryContent/TableHeader";
 import ProductTable from "./InventoryContent/ProductTable";
 import MessageToast from "../MessageToast";
 
-import { useInventoryHandlers } from "./InventoryContent/useInventoryhandlers";
+import { useInventoryHandler } from "./InventoryContent/useInventoryHandler";
 import { useProductOperationHandler } from "./ProductOperation/useProductOperationHandler";
 
 // ✅ Import modals
@@ -29,7 +29,7 @@ export default function InventoryContent() {
     message,
     refetch,
     refetchCategories,
-  } = useInventoryHandlers();
+  } = useInventoryHandler();
 
   // ✅ Centralized product operation handlers
   const productOperations = useProductOperationHandler({

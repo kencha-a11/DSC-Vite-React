@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import useClickOutside from "../../hooks/useClickOutSide";
+import useClickOutside from "../../hooks/useClickOutside";
 
 export default function CategoryConfirmModal({
   title = "",
