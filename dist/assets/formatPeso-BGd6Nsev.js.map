@@ -1,0 +1,1 @@
+{"version":3,"file":"formatPeso-BGd6Nsev.js","sources":["../../src/utils/formatPeso.js"],"sourcesContent":["export const formatPeso = (amount) => `₱ ${Number(amount ?? 0).toFixed(2)}`;\r\n\r\n"],"names":["formatPeso","amount"],"mappings":"AAAY,MAACA,EAAcC,GAAW,KAAK,OAAOA,GAAU,CAAC,EAAE,QAAQ,CAAC,CAAC"}

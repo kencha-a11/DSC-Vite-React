@@ -1,75 +1,85 @@
 // src/api/auth.js
-import api, { csrfApi } from "../api/axios";
+import api, { csrfApi, initCsrf } from "../api/axios";
 
 /**
- * Fetch CSRF cookie and ensure it's set before any request
+ * Ensure CSRF cookie is set before any request
  */
-export const getCsrfCookie = async () => {
-  try {
-    const response = await csrfApi.get("/sanctum/csrf-cookie");
-
-    // Small delay ensures browser sets cookie before next request
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    return response;
-  } catch (error) {
-    console.error("CSRF cookie fetch failed:", error);
-    throw error;
-  }
+export const ensureCsrf = async () => {
+  console.log("🔹 ensureCsrf called");
+  await initCsrf();
 };
 
 /**
  * Login user
- * Automatically sends device timezone to backend
+ * Sends timezone along with credentials
  * @param {Object} credentials - { email, password }
- * @returns {Promise<Object>} - Axios response
+ * @returns {Promise<Object>}
  */
 export const login = async (credentials) => {
+  console.log("🔹 login called with credentials:", credentials);
+
   try {
-    await getCsrfCookie();
+    await ensureCsrf();
 
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const payload = { ...credentials, timezone };
 
-    const response = await api.post("/login", {
-      ...credentials,
-      timezone,
-    });
+    console.log("🔹 Sending POST /login with payload:", payload);
+    const response = await api.post("/login", payload);
 
+    console.log("✅ Login successful:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Login failed:", error);
+    console.error("❌ Login failed:", error);
+    console.log("🔹 Response data:", error.response?.data);
+    console.log("🔹 Response status:", error.response?.status);
     throw error;
   }
 };
 
 /**
  * Logout user
- * Optionally sends device timezone to backend if needed
+ * @returns {Promise<Object>}
  */
 export const logout = async () => {
+  console.log("🔹 logout called");
+
   try {
-    await getCsrfCookie();
+    await ensureCsrf();
 
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    console.log("🔹 Sending POST /logout with timezone:", timezone);
 
     const response = await api.post("/logout", { timezone });
+    console.log("✅ Logout successful:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Logout failed:", error);
+    console.error("❌ Logout failed:", error);
+    console.log("🔹 Response data:", error.response?.data);
+    console.log("🔹 Response status:", error.response?.status);
     throw error;
   }
 };
 
 /**
  * Get authenticated user
- * @returns {Promise<Object>} - User object
+ * @returns {Promise<Object>}
  */
 export const getUser = async () => {
+  console.log("🔹 getUser called");
+
   try {
+    await ensureCsrf();
+
+    console.log("🔹 Sending GET /user");
     const { data } = await api.get("/user");
+
+    console.log("✅ Fetched user:", data);
     return data;
   } catch (error) {
-    console.error("Fetching user failed:", error);
+    console.error("❌ Fetching user failed:", error);
+    console.log("🔹 Response data:", error.response?.data);
+    console.log("🔹 Response status:", error.response?.status);
     throw error;
   }
 };

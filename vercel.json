@@ -1,5 +1,8 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/api/(.*)", "destination": "https://dsc-laravel.onrender.com/api/$1" },
+    { "source": "/sanctum/csrf-cookie", "destination": "https://dsc-laravel.onrender.com/sanctum/csrf-cookie" },
+    { "source": "/login", "destination": "https://dsc-laravel.onrender.com/login" },
+    { "source": "/logout", "destination": "https://dsc-laravel.onrender.com/logout" }
   ]
 }

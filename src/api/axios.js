@@ -1,109 +1,131 @@
 import axios from "axios";
 
-// ------------------------------
-// Utility: CSRF token extractor
-// ------------------------------
-const getCsrfTokenFromCookie = () => {
-  const cookies = document.cookie.split(";");
-  for (let cookie of cookies) {
-    const [name, value] = cookie.trim().split("=");
-    if (name === "XSRF-TOKEN") return decodeURIComponent(value);
-  }
-  return null;
-};
+console.log("🚀 axios.js loaded!");
 
 // ------------------------------
-// Create Axios instances
+// Environment & Base URLs
+// ------------------------------
+const isDev = import.meta.env.DEV;
+
+const BASE_URL = isDev
+  ? import.meta.env.VITE_API_BASE_URL || "https://dsc-laravel.onrender.com/api"
+  : "/api"; // use proxy for same-origin illusion
+
+const BASE_CSRF_URL = isDev
+  ? (import.meta.env.VITE_API_BASE_URL?.replace("/api", "") || "https://dsc-laravel.onrender.com")
+  : "";
+
+console.group("🌐 Axios Environment Info");
+console.log("🔹 Environment:", isDev ? "Development" : "Production");
+console.log("🔹 BASE_URL:", BASE_URL);
+console.log("🔹 BASE_CSRF_URL:", BASE_CSRF_URL || "(root - using proxy)");
+if (!isDev) console.log("🔹 Vercel proxy will forward to: https://dsc-laravel.onrender.com");
+console.groupEnd();
+
+// ------------------------------
+// Axios Instances
 // ------------------------------
 export const csrfApi = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: BASE_CSRF_URL,
   withCredentials: true,
   headers: {
-    "Content-Type": "application/json",
     Accept: "application/json",
+    "Content-Type": "application/json",
     "X-Requested-With": "XMLHttpRequest",
   },
 });
 
 export const api = axios.create({
-  baseURL: "http://localhost:8000/api",
-  withCredentials: true,
+  baseURL: BASE_URL,
+  withCredentials: true,        // important for cookies
+  xsrfCookieName: "XSRF-TOKEN", // read automatically
+  xsrfHeaderName: "X-XSRF-TOKEN",
   headers: {
-    "Content-Type": "application/json",
     Accept: "application/json",
+    "Content-Type": "application/json",
     "X-Requested-With": "XMLHttpRequest",
   },
 });
 
 // ------------------------------
-// Utility: Normalize Dates to UTC
+// Helper: Normalize Dates to UTC
 // ------------------------------
-function normalizeToUTC(obj) {
+const normalizeToUTC = (obj) => {
   if (!obj || typeof obj !== "object") return;
   for (const key of Object.keys(obj)) {
     const val = obj[key];
     if (Array.isArray(val)) {
       val.forEach((item, i) => {
-        if (item instanceof Date) val[i] = item.toISOString();
+        if (item instanceof Date) val[i] = val[i].toISOString();
         else if (typeof item === "object") normalizeToUTC(item);
       });
-    } else if (val instanceof Date) {
-      obj[key] = val.toISOString();
-    } else if (val && typeof val === "object") {
-      normalizeToUTC(val);
-    }
-  }
-}
-
-// ------------------------------
-// Initialize CSRF (helper)
-// ------------------------------
-export const initCsrf = async () => {
-  try {
-    await csrfApi.get("/sanctum/csrf-cookie");
-    console.log("CSRF token initialized");
-  } catch (err) {
-    console.error("Failed to initialize CSRF:", err);
+    } else if (val instanceof Date) obj[key] = val.toISOString();
+    else if (val && typeof val === "object") normalizeToUTC(val);
   }
 };
 
 // ------------------------------
-// Add interceptors (AFTER definitions)
+// Initialize CSRF Token
 // ------------------------------
+export const initCsrf = async () => {
+  console.log("🔹 initCsrf called...");
+  try {
+    const response = await csrfApi.get("/sanctum/csrf-cookie");
+    console.log("✅ CSRF cookie initialized. HTTP Status:", response.status);
 
-// ✅ Add timezone to every CSRF request
+    // allow cookie propagation
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  } catch (err) {
+    console.error("❌ initCsrf failed:", err.message || err);
+  }
+};
+
+// ------------------------------
+// Interceptors
+// ------------------------------
 csrfApi.interceptors.request.use((config) => {
-  config.headers["X-Device-Timezone"] =
-    Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  config.headers["X-Device-Timezone"] = tz;
+  console.log(`🔹 CSRF API request → ${config.url} | TZ: ${tz}`);
   return config;
 });
 
-// ✅ Main API interceptor (with CSRF + UTC normalization)
-api.interceptors.request.use(
-  (config) => {
-    const csrfToken = getCsrfTokenFromCookie();
-    if (csrfToken) config.headers["X-XSRF-TOKEN"] = csrfToken;
+api.interceptors.request.use((config) => {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  config.headers["X-Device-Timezone"] = tz;
 
-    config.headers["X-Device-Timezone"] =
-      Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (config.data) normalizeToUTC(config.data);
 
-    normalizeToUTC(config.data);
+  console.log("📡 API request →", config.method?.toUpperCase(), config.url, "| Data:", config.data || "(none)");
+  return config;
+});
 
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// ✅ Handle 419 retry
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log("✅ Response OK →", response.config.url, "| Status:", response.status, "| Data:", response.data);
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 419 && !originalRequest._retry) {
+    const status = error.response?.status;
+    console.warn(`⚠️ API error ${status} → ${originalRequest?.url}`);
+
+    // CSRF expired → retry once
+    if (status === 419 && !originalRequest._retry) {
       originalRequest._retry = true;
+      console.warn("🔄 CSRF expired — refreshing cookie...");
       await initCsrf();
       return api(originalRequest);
     }
+
+    // transient backend downtime → retry once
+    if ([502, 503, 504].includes(status) && !originalRequest._retry) {
+      originalRequest._retry = true;
+      console.warn("🌐 Server unavailable — retrying in 1s...");
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return api(originalRequest);
+    }
+
     return Promise.reject(error);
   }
 );

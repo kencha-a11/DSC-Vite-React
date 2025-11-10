@@ -1,1 +1,0 @@
-import{j as e,L as r}from"./index-DAizD6vu.js";function n(){return e.jsxs("div",{style:{textAlign:"center",marginTop:"50px"},children:[e.jsx("h1",{children:"403"}),e.jsx("h2",{children:"Forbidden"}),e.jsx("p",{children:"The page you are looking for is restricted."}),e.jsx(r,{to:"/dashboard",children:"Go Back Home"})]})}export{n as default};
