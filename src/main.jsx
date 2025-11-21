@@ -31,9 +31,7 @@ const startApp = async () => {
         <AuthProvider>
           <Suspense
             fallback={
-              <div className="min-h-screen flex items-center justify-center">
-                <Loader text="Loading app…" />
-              </div>
+              <Loader text="Loading..." />
             }
           >
             <RouterProvider router={router} />

@@ -11,21 +11,34 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   // ------------------------------
-  // Fetch current user once CSRF is ready
+  // Fetch user ONLY if session cookie exists
   // ------------------------------
   useEffect(() => {
     const initializeAuth = async () => {
+      setLoading(true);
+
+      // 🔥 Only real login cookie determines auth state
+      const hasSession = document.cookie
+        .split("; ")
+        .some((c) => c.startsWith("laravel_session="));
+
+      if (!hasSession) {
+        console.log("ℹ️ No session cookie — user is not logged in");
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      // ✔ A session exists → fetch authenticated user
       try {
-        setLoading(true);
-        setError(null);
-        const data = await getUser(); // getUser already ensures CSRF cookie
+        const data = await getUser();
         setUser(data || null);
       } catch (err) {
-        setUser(null);
         if (err.response?.status !== 401) {
           console.error("Unexpected error fetching user:", err);
           setError("Failed to fetch user data");
         }
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -41,8 +54,8 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     setLoading(true);
     try {
-      await apiLogin(credentials); // ensures CSRF
-      const data = await getUser(); // fetch updated user
+      await apiLogin(credentials);
+      const data = await getUser();
       setUser(data || null);
       return { success: true };
     } catch (err) {
@@ -62,7 +75,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      await apiLogout(); // ensures CSRF
+      await apiLogout();
     } catch (err) {
       console.warn("Logout API call failed:", err);
     } finally {

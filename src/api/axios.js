@@ -6,20 +6,22 @@ console.log("🚀 axios.js loaded!");
 // Environment & Base URLs
 // ------------------------------
 const isDev = import.meta.env.DEV;
+const BACKEND_URL = "https://dsc-laravel.onrender.com";
 
+// In dev → use VITE_API_BASE_URL
+// In prod → ALWAYS use backend URL directly
 const BASE_URL = isDev
-  ? import.meta.env.VITE_API_BASE_URL || "https://dsc-laravel.onrender.com/api"
-  : "/api"; // use proxy for same-origin illusion
+  ? import.meta.env.VITE_API_BASE_URL || `${BACKEND_URL}/api`
+  : `${BACKEND_URL}/api`;
 
 const BASE_CSRF_URL = isDev
-  ? (import.meta.env.VITE_API_BASE_URL?.replace("/api", "") || "https://dsc-laravel.onrender.com")
-  : "";
+  ? (import.meta.env.VITE_API_BASE_URL?.replace("/api", "") || BACKEND_URL)
+  : BACKEND_URL;
 
 console.group("🌐 Axios Environment Info");
 console.log("🔹 Environment:", isDev ? "Development" : "Production");
 console.log("🔹 BASE_URL:", BASE_URL);
-console.log("🔹 BASE_CSRF_URL:", BASE_CSRF_URL || "(root - using proxy)");
-if (!isDev) console.log("🔹 Vercel proxy will forward to: https://dsc-laravel.onrender.com");
+console.log("🔹 BASE_CSRF_URL:", BASE_CSRF_URL);
 console.groupEnd();
 
 // ------------------------------
@@ -37,8 +39,8 @@ export const csrfApi = axios.create({
 
 export const api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true,        // important for cookies
-  xsrfCookieName: "XSRF-TOKEN", // read automatically
+  withCredentials: true,
+  xsrfCookieName: "XSRF-TOKEN",
   xsrfHeaderName: "X-XSRF-TOKEN",
   headers: {
     Accept: "application/json",
@@ -73,7 +75,6 @@ export const initCsrf = async () => {
     const response = await csrfApi.get("/sanctum/csrf-cookie");
     console.log("✅ CSRF cookie initialized. HTTP Status:", response.status);
 
-    // allow cookie propagation
     await new Promise((resolve) => setTimeout(resolve, 200));
   } catch (err) {
     console.error("❌ initCsrf failed:", err.message || err);
@@ -96,21 +97,34 @@ api.interceptors.request.use((config) => {
 
   if (config.data) normalizeToUTC(config.data);
 
-  console.log("📡 API request →", config.method?.toUpperCase(), config.url, "| Data:", config.data || "(none)");
+  console.log(
+    "📡 API request →",
+    config.method?.toUpperCase(),
+    config.url,
+    "| Data:",
+    config.data || "(none)"
+  );
   return config;
 });
 
 api.interceptors.response.use(
   (response) => {
-    console.log("✅ Response OK →", response.config.url, "| Status:", response.status, "| Data:", response.data);
+    console.log(
+      "✅ Response OK →",
+      response.config.url,
+      "| Status:",
+      response.status,
+      "| Data:",
+      response.data
+    );
     return response;
   },
   async (error) => {
     const originalRequest = error.config;
     const status = error.response?.status;
+
     console.warn(`⚠️ API error ${status} → ${originalRequest?.url}`);
 
-    // CSRF expired → retry once
     if (status === 419 && !originalRequest._retry) {
       originalRequest._retry = true;
       console.warn("🔄 CSRF expired — refreshing cookie...");
@@ -118,7 +132,6 @@ api.interceptors.response.use(
       return api(originalRequest);
     }
 
-    // transient backend downtime → retry once
     if ([502, 503, 504].includes(status) && !originalRequest._retry) {
       originalRequest._retry = true;
       console.warn("🌐 Server unavailable — retrying in 1s...");
