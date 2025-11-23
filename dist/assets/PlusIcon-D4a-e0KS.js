@@ -1,2 +1,0 @@
-import{j as o}from"./index-Bc5vGLNC.js";const n=({className:r="w-5 h-5",strokeWidth:s=2})=>o.jsxs("svg",{className:r,fill:"none",stroke:"currentColor",strokeWidth:s,viewBox:"0 0 24 24",xmlns:"http://www.w3.org/2000/svg","aria-hidden":"true",children:[o.jsx("line",{x1:"12",y1:"5",x2:"12",y2:"19",strokeLinecap:"round"}),o.jsx("line",{x1:"5",y1:"12",x2:"19",y2:"12",strokeLinecap:"round"})]});export{n as P};
-//# sourceMappingURL=PlusIcon-D4a-e0KS.js.map
