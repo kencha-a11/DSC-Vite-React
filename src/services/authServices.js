@@ -1,80 +1,44 @@
 // src/services/authServices.js
 // ------------------------------
 // Handles login, logout, and fetching authenticated user
-// ⚠️ Must use csrfApi for Laravel Sanctum auth routes
+// Token-based authentication with localStorage
 // ------------------------------
 
-import { csrfApi, initCsrf } from "../api/axios"; 
-// Import csrfApi only (baseURL points to Laravel backend root)
-// Do NOT import the 'api' proxy because it uses /api prefix
-// Using apiInstance here would cause requests like /api/api/user → wrong
+import { api } from "../api/axios";
 
 // ------------------------------
-// Helper: Log cookies for debugging
-// ------------------------------
-const logCookies = () => {
-  // Parse document.cookie into a key/value object
-  const cookies = document.cookie.split("; ").reduce((acc, cookie) => {
-    const [key, value] = cookie.split("="); // Split key=value
-    acc[key] = value; // Add to object
-    return acc;
-  }, {});
-
-  // Log cookies for debugging CSRF / session issues
-  console.group("🍪 Current Cookies (JS-readable)");
-  console.log("🔹 XSRF-TOKEN:", cookies["XSRF-TOKEN"] ? "✅ Present" : "❌ Missing");
-  console.log("🔹 laravel_session: ❌ HttpOnly (automatic, not JS-readable)");
-  console.groupEnd();
-};
-
-// ------------------------------
-// Ensure CSRF cookie is set before any request
-// ------------------------------
-export const ensureCsrf = async () => {
-  console.log("🔹 ensureCsrf called");
-
-  // Call initCsrf() to request CSRF cookie from Laravel
-  await initCsrf();
-
-  // Log current cookies after CSRF initialization
-  logCookies();
-};
-
-// ------------------------------
-// Login user
+// Login user (returns user + token)
 // ------------------------------
 export const login = async (credentials) => {
   console.log("🔹 login called with credentials:", credentials);
 
   try {
-    // Make sure CSRF token is present before login
-    await ensureCsrf();
-
-    // Attach user's timezone to payload (Laravel backend may store it)
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const payload = { ...credentials, timezone };
 
-    console.log("🔹 Sending POST to /login (csrfApi - baseURL='')");
-    console.log("🔹 Request payload:", payload);
+    console.log("🔹 Sending POST to /login with payload:", payload);
 
-    // POST /login → hits Laravel backend root directly
-    const response = await csrfApi.post("/login", payload);
+    // POST /login → Laravel returns { user, token, message }
+    const response = await api.post('/login', payload);
 
     console.log("✅ Login successful:", response.data);
 
-    // Show cookies after login
-    logCookies();
+    // Store token in localStorage
+    localStorage.setItem('auth_token', response.data.token);
+    console.log("🔹 Token stored:", response.data.token.substring(0, 20) + "...");
 
-    return response.data; // Return Laravel response (user info / token)
+    // Immediately fetch user with token
+    const user = await getUser();
+
+    return {
+      ...response.data,
+      user, // authenticated user object
+    };
   } catch (error) {
-    // Login failed → log details for debugging
     console.error("❌ Login failed:", error);
     console.log("🔹 Response data:", error.response?.data);
     console.log("🔹 Response status:", error.response?.status);
-
-    logCookies(); // Show cookies at failure
-
-    throw error; // Rethrow to handle in UI
+    throw error;
   }
 };
 
@@ -85,33 +49,30 @@ export const logout = async () => {
   console.log("🔹 logout called");
 
   try {
-    // Ensure CSRF token is set before logout
-    await ensureCsrf();
-
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    console.log("🔹 Sending POST to /logout with timezone in header");
+    console.log("🔹 Sending POST to /logout with timezone:", timezone);
 
-    // POST /logout → Laravel backend handles session termination
-    const response = await csrfApi.post("/logout", null, {
-      headers: { "X-Device-Timezone": timezone } // ✅ send timezone in header
+    await api.post('/logout', null, {
+      headers: { "X-Device-Timezone": timezone },
     });
 
-    console.log("✅ Logout successful:", response.data);
+    console.log("✅ Logout successful");
 
-    // Log cookies after logout
-    logCookies();
+    // Clear token from localStorage
+    localStorage.removeItem('auth_token');
 
-    return response.data;
+    return { message: "Logged out successfully" };
   } catch (error) {
     console.error("❌ Logout failed:", error);
     console.log("🔹 Response data:", error.response?.data);
     console.log("🔹 Response status:", error.response?.status);
 
-    logCookies(); // Show cookies at failure
+    // Clear token anyway
+    localStorage.removeItem('auth_token');
+
     throw error;
   }
 };
-
 
 // ------------------------------
 // Get authenticated user
@@ -119,27 +80,26 @@ export const logout = async () => {
 export const getUser = async () => {
   console.log("🔹 getUser called");
 
+  const token = localStorage.getItem('auth_token');
+  if (!token) {
+    console.log("⚠️ No token found in localStorage");
+    throw new Error('No auth token');
+  }
+
   try {
-    // Ensure CSRF token is present → Laravel will reject request without it
-    await ensureCsrf();
+    console.log("🔹 Sending GET to /user");
 
-    console.log("🔹 Sending GET to /user (csrfApi - baseURL='')");
-
-    // GET /user → fetches authenticated user from Laravel backend
-    const { data } = await csrfApi.get("/user");
+    // Axios interceptor automatically attaches Authorization header
+    const { data } = await api.get('/user');
 
     console.log("✅ Fetched user:", data);
 
-    // Show cookies after fetching user
-    logCookies();
-
-    return data; // Return user object
+    return data;
   } catch (error) {
     console.error("❌ Fetching user failed:", error);
     console.log("🔹 Response data:", error.response?.data);
     console.log("🔹 Response status:", error.response?.status);
 
-    logCookies(); // Show cookies at failure
     throw error;
   }
 };

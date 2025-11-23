@@ -1,5 +1,5 @@
 // src/api/auth.js
-import api, { csrfApi } from "../api/axios";
+import api from "../api/axios";
 
 // Get authenticated user
 export async function getUserProfile() {

@@ -1,12 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import tailwindcss from '@tailwindcss/vite'
+import tailwindcss from "@tailwindcss/vite";
 
-// https://vite.dev/config/
 export default defineConfig({
+  base: "/",   // <-- REQUIRED FOR NETLIFY
   plugins: [react(), tailwindcss()],
   build: {
-    outDir: 'dist', // Vite default output folder
+    outDir: "dist",
     sourcemap: true,
-  }
+  },
 });

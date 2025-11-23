@@ -1,0 +1,5 @@
+# API routes - proxy to Laravel backend
+/api/*      https://dsc-laravel.onrender.com/api/:splat  200
+
+# Frontend SPA fallback - MUST BE LAST
+/*          /index.html                                    200

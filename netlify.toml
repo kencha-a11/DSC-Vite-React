@@ -1,0 +1,22 @@
+# API proxy to Laravel backend
+[[redirects]]
+  from = "/api/*"
+  to = "https://dsc-laravel.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+# Do NOT rewrite JS/CSS/image chunks
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 200
+
+# SPA fallback - LAST
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build]
+  publish = "dist"
+  command = "npm run build"
