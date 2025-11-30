@@ -7,14 +7,8 @@ function CartItem({ item, product, stock, onUpdateQuantity, onLimit }) {
   const price = Number(product?.price ?? 0);
   const subtotal = price * item.quantity;
 
-  // Use a more reliable placeholder
-  const defaultImg = `/fallback.png`; // optional local fallback
-  const placeholderImg = `https://via.placeholder.com/64x64.png?text=${encodeURIComponent(
-    name.charAt(0) || "P"
-  )}`;
-  const img = product?.image || placeholderImg;
-
   const [inputQty, setInputQty] = useState(item.quantity);
+  const [imgError, setImgError] = useState(false);
 
   // Sync internal input state with actual quantity
   useEffect(() => {
@@ -47,17 +41,22 @@ function CartItem({ item, product, stock, onUpdateQuantity, onLimit }) {
   return (
     <div className="border border-gray-300 rounded-lg p-3 bg-white">
       <div className="flex items-start gap-3">
+        {/* Image or fallback letter */}
         <div className="w-16 h-16 border border-gray-200 rounded flex items-center justify-center bg-gray-50 overflow-hidden">
-          <img
-            src={img}
-            alt={name}
-            className="object-cover w-full h-full rounded"
-            onError={(e) => {
-              e.onerror = null;
-              e.target.src = defaultImg;
-            }}
-          />
+          {product?.image && !imgError ? (
+            <img
+              src={product.image}
+              alt={name}
+              className="object-cover w-full h-full rounded"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <span className="text-lg font-bold text-gray-500">
+              {name.charAt(0).toUpperCase()}
+            </span>
+          )}
         </div>
+
         <div className="flex flex-col flex-1">
           <div className="text-sm font-semibold text-gray-800">{name}</div>
           <div className="text-xs text-gray-500">{normalizeCategory(product)}</div>

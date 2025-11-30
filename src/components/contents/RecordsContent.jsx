@@ -13,7 +13,7 @@ const RecordsContent = () => {
   const [activeTab, setActiveTab] = useState("time");
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] bg-white rounded-lg shadow p-4">
+    <div className="flex flex-col h-[calc(100vh-5rem)] bg-white rounded-lg shadow p-4">
       {/* Tab Header */}
       <div className="relative flex justify-between border border-gray-200 rounded-t-lg overflow-hidden">
         {tabs.map((tab) => (

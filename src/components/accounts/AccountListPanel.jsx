@@ -24,14 +24,20 @@ export default function AccountListPanel({
     onToast?.("User added successfully!");
   };
 
-  // ✅ Sort users: active first, inactive later
+  // ✅ Filter out admin users and sort: active first, inactive later
   const sortedUsers = Array.isArray(users)
-    ? [...users].sort((a, b) => {
-        const aStatus = a.latest_time_log?.current_status?.toLowerCase() || "inactive";
-        const bStatus = b.latest_time_log?.current_status?.toLowerCase() || "inactive";
-        if (aStatus === bStatus) return 0;
-        return aStatus === "active" || aStatus === "logged_in" ? -1 : 1;
-      })
+    ? [...users]
+        .filter((user) => {
+          // Exclude users with admin role
+          const role = user.role?.toLowerCase() || "";
+          return role !== "admin";
+        })
+        .sort((a, b) => {
+          const aStatus = a.latest_time_log?.current_status?.toLowerCase() || "inactive";
+          const bStatus = b.latest_time_log?.current_status?.toLowerCase() || "inactive";
+          if (aStatus === bStatus) return 0;
+          return aStatus === "active" || aStatus === "logged_in" ? -1 : 1;
+        })
     : [];
 
   const hasUsers = sortedUsers.length > 0;

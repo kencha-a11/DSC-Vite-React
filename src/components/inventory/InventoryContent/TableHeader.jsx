@@ -11,7 +11,7 @@ export default function TableHeader({ selectedCategory, statusFilter, setState, 
         <select
           value={selectedCategory}
           onChange={(e) => setState("selectedCategory", e.target.value)}
-          className="border rounded px-2 py-1 text-sm bg-white mr-2"
+          className="border rounded px-2 py-1 text-sm bg-white mr-2 border-gray-200"
         >
           {categories.map((c) => (
             <option key={c.id} value={c.category_name}>
@@ -29,7 +29,7 @@ export default function TableHeader({ selectedCategory, statusFilter, setState, 
             console.log("Status selected:", value); // Debug
             setState("statusFilter", value);
           }}
-          className="border rounded px-2 py-1 text-sm bg-white"
+          className="border rounded px-2 py-1 text-sm bg-white border-gray-200"
         >
           <option value="">Status</option>
           {/* 💡 These must match backend status strings exactly */}

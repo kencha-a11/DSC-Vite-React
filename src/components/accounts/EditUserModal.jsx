@@ -115,7 +115,7 @@ export default function EditUserModal({ user, onClose, onUserUpdated, onToast })
                 required
               >
                 <option value="user">User</option>
-                <option value="manager">Manager</option>
+                {/* <option value="admin">Manager</option> */}
               </select>
             </div>
 

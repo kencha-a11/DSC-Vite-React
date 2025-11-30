@@ -1,11 +1,19 @@
-import {
-  DollarIcon,
-  BasketIcon,
-  BoxIcon,
-  ReceiptIcon,
-  UserIcon,
-  AlarmIcon
-} from '../../components/icons';
+// import {
+//   DollarIcon,
+//   BasketIcon,
+//   BoxIcon,
+//   ReceiptIcon,
+//   UserIcon,
+//   AlarmIcon
+// } from '../../components/icons';
+
+import DollarIcon from '@mui/icons-material/AttachMoney';
+import BasketIcon from '@mui/icons-material/ShoppingBasket';
+import BoxIcon from '@mui/icons-material/ViewInAr';
+import ReceiptIcon from '@mui/icons-material/ReceiptLong';
+import UserIcon from '@mui/icons-material/AssignmentInd';
+import AlarmIcon from '@mui/icons-material/AccessAlarm';
+
 
 const StatCard = ({ type, value, percentageChange, isIncrease }) => {
   // Arrow and color logic for percentage cards
@@ -44,7 +52,7 @@ const StatCard = ({ type, value, percentageChange, isIncrease }) => {
         className={`flex items-center px-3 py-1 rounded-full text-sm font-semibold ${percentBgColor} ${percentTextColor}`}
       >
         <span className="mr-1">{arrow}</span>
-        <span>{percentageChange}%</span>
+        <span>{percentageChange}</span>
       </div>
     );
   } else {

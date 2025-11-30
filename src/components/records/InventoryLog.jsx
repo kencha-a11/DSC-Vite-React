@@ -1,8 +1,39 @@
-// src/components/records/InventoryLog.jsx
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { getInventoryLogs } from "../../services/logServices";
-import useDebounce from "../../hooks/useDebounce";
-import useInfiniteScroll from "../../hooks/useInfiniteScroll";
+
+// Simple debounce hook
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+// Simple infinite scroll hook
+function useInfiniteScroll(loaderRef, callback, hasMore, loading) {
+  useEffect(() => {
+    if (!loaderRef.current || !hasMore || loading) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) callback();
+      },
+      { threshold: 1.0 }
+    );
+
+    observer.observe(loaderRef.current);
+    return () => {
+      if (loaderRef.current) observer.unobserve(loaderRef.current);
+    };
+  }, [loaderRef, callback, hasMore, loading]);
+}
 
 export default function InventoryLog() {
   const [logs, setLogs] = useState([]);
@@ -16,23 +47,51 @@ export default function InventoryLog() {
   const loaderRef = useRef();
   const debouncedSearch = useDebounce(search, 400);
 
-  // ✅ Fetch logs from server with filters and pagination
+  // No highlighting - just return text as-is
+  const highlightMatch = (text, searchTerm) => {
+    return text || "N/A";
+  };
+
+  // Fetch logs from server with filters and pagination
   const fetchLogs = useCallback(
     async (pageToFetch = 1) => {
       setLoading(true);
       try {
+        // Build params object
         const params = {
-          search: debouncedSearch || undefined,
-          action: actionFilter || undefined,
-          date: dateFilter || undefined,
           page: pageToFetch,
           limit: 20,
         };
 
-        const data = await getInventoryLogs(params);
+        // Only add if they have actual values
+        if (debouncedSearch && debouncedSearch.trim() !== "") {
+          params.search = debouncedSearch.trim();
+        }
 
-        setLogs((prev) => (pageToFetch === 1 ? data : [...prev, ...data]));
-        setHasMore(data.length > 0);
+        if (actionFilter && actionFilter !== "") {
+          params.action = actionFilter;
+        }
+
+        if (dateFilter && dateFilter !== "") {
+          params.date = dateFilter;
+        }
+
+        console.log("🔍 Fetching logs with params:", params);
+        console.log("   - Search term:", debouncedSearch);
+        console.log("   - Action filter:", actionFilter);
+        console.log("   - Date filter:", dateFilter);
+
+        const { logs: fetchedLogs, meta } = await getInventoryLogs(params);
+
+        console.log("📦 API Response:");
+        console.log("   - Total logs fetched:", fetchedLogs.length);
+        console.log("   - Meta:", meta);
+        console.log("   - First log:", fetchedLogs[0]);
+
+        setLogs((prev) =>
+          pageToFetch === 1 ? fetchedLogs : [...prev, ...fetchedLogs]
+        );
+        setHasMore(pageToFetch < (meta.last_page || 1));
       } catch (err) {
         console.error("❌ Failed to fetch logs:", err);
         setLogs([]);
@@ -44,15 +103,21 @@ export default function InventoryLog() {
     [debouncedSearch, actionFilter, dateFilter]
   );
 
-  // ✅ Reset logs when filters/search change
+  // Reset logs when filters/search change
   useEffect(() => {
+    console.log("🔄 Filters changed - resetting:");
+    console.log("   - Search:", debouncedSearch);
+    console.log("   - Action:", actionFilter);
+    console.log("   - Date:", dateFilter);
+    
     setLogs([]);
     setPage(1);
     setHasMore(true);
   }, [debouncedSearch, actionFilter, dateFilter]);
 
-  // ✅ Fetch logs when page changes
+  // Fetch logs when page changes
   useEffect(() => {
+    console.log("📄 Page changed to:", page);
     fetchLogs(page);
   }, [page, fetchLogs]);
 
@@ -60,9 +125,7 @@ export default function InventoryLog() {
   useInfiniteScroll(
     loaderRef,
     () => {
-      if (hasMore && !loading) {
-        setPage((prev) => prev + 1);
-      }
+      if (hasMore && !loading) setPage((prev) => prev + 1);
     },
     hasMore,
     loading
@@ -75,7 +138,6 @@ export default function InventoryLog() {
     { value: "restock", label: "Restocked" },
     { value: "deducted", label: "Deducted" },
     { value: "deleted", label: "Deleted" },
-    { value: "adjusted", label: "Adjusted" },
   ];
 
   const getActionColor = (action) => {
@@ -85,19 +147,17 @@ export default function InventoryLog() {
       case "restock": return "text-emerald-600 font-semibold";
       case "deducted": return "text-orange-500 font-semibold";
       case "deleted": return "text-red-600 font-semibold";
-      case "adjusted": return "text-gray-600 font-semibold";
       default: return "text-gray-700";
     }
   };
 
   const formatActionLabel = (action) => {
     const map = {
-      created: "Added",
+      created: "Created",
       update: "Updated",
       restock: "Restocked",
       deducted: "Deducted",
       deleted: "Removed",
-      adjusted: "Adjusted",
     };
     return map[action?.toLowerCase()] ?? action ?? "N/A";
   };
@@ -114,7 +174,6 @@ export default function InventoryLog() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-1/2 min-w-[250px] p-2 border rounded-lg border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-
           <div className="flex flex-1 gap-4">
             <select
               value={actionFilter}
@@ -122,12 +181,9 @@ export default function InventoryLog() {
               className="flex-1 p-2 border rounded-lg border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {actionOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
-
             <input
               type="date"
               value={dateFilter}
@@ -149,14 +205,22 @@ export default function InventoryLog() {
       {/* Logs */}
       <div className="flex-1 overflow-auto">
         {logs.length === 0 && !loading && (
-          <p className="py-6 text-center text-gray-500">No inventory logs found</p>
+          <p className="py-6 text-center text-gray-500">
+            No inventory logs found
+            {(debouncedSearch || actionFilter || dateFilter) && (
+              <span className="block text-sm mt-2">
+                Try adjusting your filters
+              </span>
+            )}
+          </p>
         )}
 
-        {logs.map((log, index) => {
+        {logs.map((log) => {
           const date = new Date(log.created_at);
+
           return (
             <div
-              key={log.id || index}
+              key={log.id}
               className="grid grid-cols-[1fr_1fr_0.5fr_0.5fr] border-t border-gray-200 hover:bg-gray-50 px-8 py-6"
             >
               <div className="flex flex-col">
@@ -168,11 +232,19 @@ export default function InventoryLog() {
                 {log.quantity_change ?? "-"}
               </div>
               <div className="flex items-center text-gray-800 text-sm">
-                {log.product_name ?? "N/A"}
+                {highlightMatch(log.product_name || "N/A", debouncedSearch)}
               </div>
               <div className="flex flex-col items-end text-gray-700 text-sm">
-                <div>{date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</div>
-                <div className="text-xs text-gray-500">{date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+                <div>
+                  {date.toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </div>
               </div>
             </div>
           );

@@ -98,7 +98,7 @@ export function EditProduct({ product, categories, isOpen, onClose, onSuccess })
             <img
               src={previewUrl || "https://via.placeholder.com/400x200"}
               alt="Product Preview"
-              className="w-full h-36 object-cover rounded-lg border border-purple-500"
+              className="w-full h-36 object-cover rounded-lg border border-purple-500 "
             />
             <input
               type="file"
@@ -116,7 +116,7 @@ export function EditProduct({ product, categories, isOpen, onClose, onSuccess })
             type="text"
             value={formData.name}
             onChange={(e) => handleInputChange("name", e.target.value)}
-            className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-600"
+            className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-purple-600 border-gray-200"
             required
           />
         </div>
@@ -127,7 +127,7 @@ export function EditProduct({ product, categories, isOpen, onClose, onSuccess })
 
           <div
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="border rounded-md px-3 py-2 cursor-pointer flex justify-between items-center bg-white hover:border-purple-500"
+            className="border rounded-md px-3 py-2 cursor-pointer flex justify-between items-center bg-white hover:border-purple-500 border-gray-200"
           >
             <span className="text-gray-600 text-sm">
               {dropdownOpen ? "Select a category..." : "Click to add category"}
@@ -143,38 +143,38 @@ export function EditProduct({ product, categories, isOpen, onClose, onSuccess })
             </svg>
           </div>
 
-{dropdownOpen && (
-  <div className="absolute z-10 mt-1 w-[95%] bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
-    {categories
-      ?.filter(
-        (c) =>
-          c.category_name !== "All" &&
-          c.category_name !== "Uncategorized" &&
-          !formData.category_ids.includes(c.id) // 🔥 exclude already selected
-      )
-      .map((c) => (
-        <div
-          key={c.id}
-          onClick={() => handleCategorySelect(c.id)}
-          className="px-3 py-2 hover:bg-purple-100 cursor-pointer text-sm text-gray-700"
-        >
-          {c.category_name}
-        </div>
-      ))}
+          {dropdownOpen && (
+            <div className="absolute z-10 mt-1 w-[95%] bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto border-gray-200">
+              {categories
+                ?.filter(
+                  (c) =>
+                    c.category_name !== "All" &&
+                    c.category_name !== "Uncategorized" &&
+                    !formData.category_ids.includes(c.id) // 🔥 exclude already selected
+                )
+                .map((c) => (
+                  <div
+                    key={c.id}
+                    onClick={() => handleCategorySelect(c.id)}
+                    className="px-3 py-2 hover:bg-purple-100 cursor-pointer text-sm text-gray-700"
+                  >
+                    {c.category_name}
+                  </div>
+                ))}
 
-    {/* If no more categories left */}
-    {categories?.filter(
-      (c) =>
-        c.category_name !== "All" &&
-        c.category_name !== "Uncategorized" &&
-        !formData.category_ids.includes(c.id)
-    ).length === 0 && (
-      <div className="px-3 py-2 text-sm text-gray-400 text-center">
-        All categories selected
-      </div>
-    )}
-  </div>
-)}
+              {/* If no more categories left */}
+              {categories?.filter(
+                (c) =>
+                  c.category_name !== "All" &&
+                  c.category_name !== "Uncategorized" &&
+                  !formData.category_ids.includes(c.id)
+              ).length === 0 && (
+                  <div className="px-3 py-2 text-sm text-gray-400 text-center">
+                    All categories selected
+                  </div>
+                )}
+            </div>
+          )}
 
 
           {/* Selected category pills */}
@@ -208,7 +208,7 @@ export function EditProduct({ product, categories, isOpen, onClose, onSuccess })
               step="0.01"
               value={formData.price}
               onChange={(e) => handleInputChange("price", e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
+              className="w-full border rounded-md px-3 py-2 border-gray-200"
               required
             />
           </div>
@@ -218,7 +218,7 @@ export function EditProduct({ product, categories, isOpen, onClose, onSuccess })
               type="number"
               value={formData.low_stock_threshold}
               onChange={(e) => handleInputChange("low_stock_threshold", e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
+              className="w-full border rounded-md px-3 py-2 border-gray-200"
               required
             />
           </div>

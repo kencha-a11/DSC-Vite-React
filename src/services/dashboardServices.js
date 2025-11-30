@@ -69,8 +69,12 @@ export const getCashierInventory = async (page = 1, search = "") => {
       search: search || undefined, // Only send if not empty
     },
   });
+
+  console.log("[getCashierInventory] Response data:", response.data); // <-- log the response
+
   return response.data;
 };
+
 
 /**
  * Fetch paginated time logs with optional date filter

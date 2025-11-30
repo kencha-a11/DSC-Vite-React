@@ -32,5 +32,11 @@ export async function getSalesLogs(params = {}) {
  */
 export async function getInventoryLogs(params = {}) {
   const response = await api.get("/logs/inventory", { params });
-  return response?.data?.data ?? [];
+  console.log("🔍 Raw API Response:", response.data); // ADD THIS LINE
+  
+  return {
+    logs: response?.data?.data ?? [],
+    meta: response?.data?.meta ?? {},
+    links: response?.data?.links ?? {},
+  };
 }

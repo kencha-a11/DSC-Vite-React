@@ -40,7 +40,7 @@ export const RecordPanel = ({
   ];
 
   return (
-    <div className="w-full flex flex-col bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden h-[68vh]">
+    <div className="w-full flex flex-col bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden h-[72vh]">
       
       {/* Header with Date Picker */}
       <div className="flex justify-between items-center p-4 border-b border-gray-200 flex-none gap-2">

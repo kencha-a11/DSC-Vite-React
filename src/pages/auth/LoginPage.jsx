@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import DSCLogo from '../../assets/DSCLogo.png';
+
+import logo from '../../assets/logo.png';
 
 export default function LoginPage() {
   const { login, user, error, clearError } = useAuth();
@@ -52,8 +53,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Top Section / Header */}
       <div className="h-16 w-full flex items-center px-6 bg-white border-b border-gray-200">
-        {DSCLogo && (
-          <img src={DSCLogo} alt="DSC Souvenirs" className="h-8 w-auto mr-3" />
+        {logo && (
+          <img src={logo} alt="DSC Souvenirs" className="h-8 w-auto mr-3" />
         )}
         <span className="text-lg font-semibold text-gray-900">DSC Souvenirs</span>
       </div>

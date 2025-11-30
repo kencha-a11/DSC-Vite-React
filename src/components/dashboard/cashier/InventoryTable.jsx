@@ -1,34 +1,34 @@
-import React, { useRef, useEffect, memo } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 
 // ==============================
 // Single Inventory Row Component
 // ==============================
 const InventoryRow = memo(({ item }) => {
-  const handleImageError = (e) => {
-    e.target.style.display = "none";
-    if (e.target.nextSibling) {
-      e.target.nextSibling.style.display = "flex";
-    }
-  };
+  const [imgError, setImgError] = useState(false);
+
+  // Select the proper image
+  const img =
+    item?.images_path?.length > 0
+      ? item.images_path.find((img) => img.is_primary)?.image_path ||
+        item.images_path[0].image_path
+      : item?.image || null;
 
   return (
     <div className="grid grid-cols-[80px_2fr_1fr_1.2fr_1.5fr_1fr] items-center py-3 px-4 border-b border-gray-200 hover:bg-gray-50 transition-colors">
       <div className="flex justify-center">
-        {item.image ? (
+        {img && !imgError ? (
           <img
-            src={item.image}
+            src={img}
             alt={item.product_name}
             loading="lazy"
             className="w-12 h-12 object-cover rounded-md"
-            onError={handleImageError}
+            onError={() => setImgError(true)}
           />
-        ) : null}
-        <div
-          className="w-12 h-12 border border-gray-300 rounded-md flex items-center justify-center text-gray-400 text-sm font-semibold bg-gray-50"
-          style={{ display: item.image ? "none" : "flex" }}
-        >
-          {item.product_name?.charAt(0).toUpperCase() || "?"}
-        </div>
+        ) : (
+          <div className="w-12 h-12 border border-gray-300 rounded-md flex items-center justify-center text-gray-400 text-sm font-semibold bg-gray-50">
+            {item.product_name?.charAt(0).toUpperCase() || "?"}
+          </div>
+        )}
       </div>
 
       <div className="text-gray-800 font-medium truncate pr-2" title={item.product_name}>

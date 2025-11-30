@@ -24,7 +24,10 @@ export default function TimeDisplay() {
   }).format(now);
 
   return (
-    <div className="bg-pink-500 text-white rounded-lg px-4 py-4 text-center">
+    <div
+      className="text-white rounded-lg px-4 py-4 text-center"
+      style={{ backgroundColor: "#ED277C" }}
+    >
       <div className="text-2xl font-extrabold leading-tight">{timeString}</div>
       <div className="text-sm opacity-90">{dateString}</div>
     </div>

@@ -74,14 +74,28 @@ export default function ProductTable({
               key={p.id}
               className="relative grid grid-cols-[80px_2fr_120px_1fr_1.5fr_1fr_80px] items-center px-8 py-2 gap-6 hover:bg-gray-50 transition"
             >
-              {/* Image */}
+              {/* Image or fallback first letter */}
               <div>
-                <img
-                  src={p.image || "/placeholder.png"}
-                  alt={p.name}
-                  className="w-16 h-16 object-cover rounded"
-                />
+                {p.image ? (
+                  <img
+                    src={p.image}
+                    alt={p.name}
+                    className="w-16 h-16 object-cover rounded"
+                    onError={(e) => {
+                      e.target.onerror = null; // prevent infinite loop
+                      e.target.style.display = "none"; // hide broken image
+                      e.target.parentNode.querySelector(".fallback-letter").style.display = "flex"; // show fallback
+                    }}
+                  />
+                ) : null}
+                <div
+                  className="fallback-letter w-16 h-16 hidden items-center justify-center rounded bg-gray-200 text-gray-700 font-bold text-lg"
+                >
+                  {p.name?.charAt(0).toUpperCase() || "?"}
+                </div>
               </div>
+
+
 
               {/* Product Name */}
               <div className="font-medium truncate">{p.name}</div>
@@ -103,11 +117,10 @@ export default function ProductTable({
                 {visibleCats.map((cat, i) => (
                   <span
                     key={i}
-                    className={`px-2 py-0.5 rounded-full border ${
-                      cat === "Uncategorized"
-                        ? "border-gray-300 text-gray-500"
-                        : "border-blue-300 bg-blue-50 text-blue-600"
-                    }`}
+                    className={`px-2 py-0.5 rounded-full border ${cat === "Uncategorized"
+                      ? "border-gray-300 text-gray-500"
+                      : "border-blue-300 bg-blue-50 text-blue-600"
+                      }`}
                   >
                     {cat}
                   </span>
@@ -117,13 +130,12 @@ export default function ProductTable({
 
               {/* Status */}
               <div
-                className={`capitalize font-medium ml-4 ${
-                  getStatus(p) === "out of stock"
-                    ? "text-red-500"
-                    : getStatus(p) === "low stock"
+                className={`capitalize font-medium ml-4 ${getStatus(p) === "out of stock"
+                  ? "text-red-500"
+                  : getStatus(p) === "low stock"
                     ? "text-yellow-500"
                     : "text-green-600"
-                }`}
+                  }`}
               >
                 {getStatus(p)}
               </div>

@@ -62,26 +62,26 @@ export default function SellsContent() {
           </select>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-2">
-  {products.length === 0 && !isLoading
-    ? <div className="text-center text-gray-500 text-sm py-8">No products found</div>
-    : <div className="space-y-3">
-        {products
-          .slice() // create a copy to avoid mutating original array
-          .sort((a, b) => b.stock_quantity - a.stock_quantity) // stock first, then low/out
-          .map(p => (
-            <ProductRow
-              key={p.id}
-              product={p}
-              onAdd={handleAddToCart}
-              disabled={getStockFor(p.id) === 0}
-            />
-          ))
-        }
-      </div>
-  }
-  {isLoading && <div className="text-center text-gray-400 py-3">Loading more...</div>}
-  <div ref={loaderRef} className="h-20"></div>
-</div>
+          {products.length === 0 && !isLoading
+            ? <div className="text-center text-gray-500 text-sm py-8">No products found</div>
+            : <div className="space-y-3">
+              {products
+                .slice() // create a copy to avoid mutating original array
+                .sort((a, b) => b.stock_quantity - a.stock_quantity) // stock first, then low/out
+                .map(p => (
+                  <ProductRow
+                    key={p.id}
+                    product={p}
+                    onAdd={handleAddToCart}
+                    disabled={getStockFor(p.id) === 0}
+                  />
+                ))
+              }
+            </div>
+          }
+          {isLoading && <div className="text-center text-gray-400 py-3">Loading more...</div>}
+          <div ref={loaderRef} className="h-20"></div>
+        </div>
 
       </div>
 
@@ -90,7 +90,7 @@ export default function SellsContent() {
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <h3 className="font-semibold text-gray-800">Transaction summary</h3>
           {cartItems.length > 0 && (
-            <button 
+            <button
               onClick={() => setShowClearCartConfirm(true)}
               className="text-xs font-medium hover:text-gray-700 transition border-2 border-gray-200 p-1 px-2 rounded-md bg-gray-100"
             >
@@ -102,17 +102,17 @@ export default function SellsContent() {
           {cartItems.length === 0
             ? <div className="text-center text-sm text-gray-500 py-8">No items selected</div>
             : <div className="space-y-4">
-                {cartItems.map(it =>
-                  <CartItem 
-                    key={it.id} 
-                    item={it} 
-                    product={it.product} 
-                    stock={getStockFor(it.id)} 
-                    onUpdateQuantity={updateCartItem} 
-                    onLimit={() => setMessage({ type: "info", text: "Stock limit reached" })} 
-                  />
-                )}
-              </div>
+              {cartItems.map(it =>
+                <CartItem
+                  key={it.id}
+                  item={it}
+                  product={it.product}
+                  stock={getStockFor(it.id)}
+                  onUpdateQuantity={updateCartItem}
+                  onLimit={() => setMessage({ type: "info", text: "Stock limit reached" })}
+                />
+              )}
+            </div>
           }
         </div>
         <div className="border-t border-gray-200 p-4">
@@ -123,9 +123,8 @@ export default function SellsContent() {
           <button
             onClick={handleCompletePurchase}
             disabled={cartItems.length === 0 || isProcessing}
-            className={`w-full py-2 rounded-md text-white text-sm font-medium transition-colors ${
-              cartItems.length === 0 || isProcessing ? "bg-gray-300 cursor-not-allowed" : "bg-pink-500 hover:bg-pink-600"
-            }`}
+            className={`w-full py-2 rounded-md text-white text-sm font-medium transition-colors ${cartItems.length === 0 || isProcessing ? "bg-gray-300 cursor-not-allowed" : "bg-pink-500 hover:bg-pink-600"
+              }`}
           >
             {cartItems.length === 0 ? "Empty Cart" : isProcessing ? "Processing..." : "Confirm purchase"}
           </button>
@@ -134,39 +133,39 @@ export default function SellsContent() {
 
       {/* Toast & Modals */}
       <MessageToast message={message} onClose={() => setMessage(null)} duration={1500} />
-      
+
       {/* Modal & Dialogue */}
       {showConfirm && (
-        <ConfirmModal 
-          cartItems={cartItems} 
-          onClose={() => setShowConfirm(false)} 
-          onConfirm={confirmTransaction} 
+        <ConfirmModal
+          cartItems={cartItems}
+          onClose={() => setShowConfirm(false)}
+          onConfirm={confirmTransaction}
         />
       )}
-      
+
       {showClearCartConfirm && (
         <ClearCartDialogue
           message="Clear Cart?"
           subMessage="Are you sure you want to remove all items from your cart? This action cannot be undone."
-          onConfirm={() => { 
-            setCartItems([]); 
-            setShowClearCartConfirm(false); 
-            setMessage({ type: "info", text: "Cart cleared" }); 
+          onConfirm={() => {
+            setCartItems([]);
+            setShowClearCartConfirm(false);
+            setMessage({ type: "info", text: "Cart cleared" });
           }}
           onCancel={() => setShowClearCartConfirm(false)}
         />
       )}
-      
+
       {showLeaveCartDialog && (
         <LeaveCartItemDialog
           message="Leave this Page?"
           subMessage="You have an ongoing transaction. Leaving now will discard all unsaved items."
-          onConfirm={() => { 
-            setCartItems([]); 
-            setShowLeaveCartDialog(false); 
-            if (pendingNavigation) { 
-              navigate(pendingNavigation); 
-              setPendingNavigation(null); 
+          onConfirm={() => {
+            setCartItems([]);
+            setShowLeaveCartDialog(false);
+            if (pendingNavigation) {
+              navigate(pendingNavigation);
+              setPendingNavigation(null);
             }
           }}
           onCancel={() => setShowLeaveCartDialog(false)}
